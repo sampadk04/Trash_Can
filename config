@@ -1,0 +1,27 @@
+Host github.com
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/id_ed25519
+
+Host cmi
+  HostName access2.cmi.ac.in
+  IdentityFile ~/.ssh/id_rsa_cmi
+  User paarth
+
+Host oldgpuserver
+  HostName gpuserver.cmi.ac.in
+  IdentityFile ~/.ssh/id_rsa_cmi
+  User sampadk04
+  ProxyJump cmi
+
+Host newgpuserver
+  HostName newgpuserver.cmi.ac.in
+  IdentityFile ~/.ssh/id_rsa_cmi
+  User paarth
+  ProxyJump cmi
+
+Host paarthnewgpuserver
+  HostName newgpuserver.cmi.ac.in
+  IdentityFile ~/.ssh/id_rsa_cmi
+  User paarth
+  ProxyJump cmi
