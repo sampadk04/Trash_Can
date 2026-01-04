@@ -1,0 +1,248 @@
+
+**Service Knowledge Article**
+
+
+**CC Billing cycle change**
+## 1. Basic Issue Details & Issue description:
+
+-  LOB: Credit Card (CC)
+
+-  Applicable Product / Account: All Credit Cards
+
+-  Issue/Request description:  The purpose of this document is to outline the process steps for handling queries and requests relate d to  credit card statement  billing  cycle change .
+
+-  Reason for issue/request occurrence:   The customer will reach out to the CDC to request a change in their statement billing cycle. This document will detail the steps for the CSE to change the customer’s credit card statement billing cycle as requested, effectively.
+## 2. Criticality of the issue:
+
+-  Medium
+## 3. Customer Verification:
+
+Refer to the CC Verification Process Document for Customer Verification
+
+## 4. Probing Questions:
+
+
+Not Applicable
+## 5. Scenarios:
+### Scenario 1: The customer contacts the CDC to request a change in their credit card’s statement billing cycle date:
+
+-  **Pre-checks that the CSE must do before raising the request:**
+
+    -  Card must be active.
+
+    -  Cardholder must be current and not delinquent  at the Account Level .
+
+    -  Customer can opt for a statement/payment date change only once a year ( **If a customer raises a request to change their statement cycle and it has been less than a year since their last request, CSEs should accept the request and follow the standard process. This empowerment has been given until March 31st, 2025, after which the statement cycle change request will be accepted only once per year** . )
+
+    -  No overdue at the time of request.
+
+    -  Currently, the option for over-limit customers is not allowed.
+
+    -  CSE should first check the history to confirm whether the customer has requested a statement billing cycle change earlier by following the given path in PRIME: Financial account > History > Field name “Statement next date” > New value is the new statement date.
+
+     [IMAGE: knowledge-article-cc-billing-cycle-change--382fb499-cda6-4751-9e64-bfec619b7f28--01.png]
+
+-  The CSE should inform the customer that statement billing can be done on the **1st, 12th** ,  **17th, 19th, 22nd, and 24th of every month.**
+
+-  Once the customer confirms the date, the CSE will raise the SR under the following tagging:
+
+-  **SR Tagging:**
+
+    -  Navigate to: Credit Card >> Request >> Statement >> Statement Cycle Change
+
+    -  Select the Credit Card in the ‘Account Number’ field.
+
+     [IMAGE: knowledge-article-cc-billing-cycle-change--a6532920-a7ec-4a6d-a5e8-155dc18251d3--02.png]
+
+-  **Eligibility Check:**
+
+    -  In the  **‘Additional Fields’**  section, click on the  **‘Check Eligibility’**  icon   **(However, as per the update received, this icon is not functioning as planned. Hence, CSEs are requested to check the eligibility manually every time they raise a statement cycle change request).**
+
+    -  **If the customer is not eligible:**
+
+        -  An error will appear stating “Billing Cycle Change Availed.”
+
+        -  While saving the SR, another error will appear stating “Credit card not eligible for statement cycle change.”
+
+    -  **If the customer is eligible:**
+
+        -  The following four fields will appear after clicking the icon:
+
+        -  **Current Statement Date:**  Displays the current statement date (e.g., ‘22’).
+
+        -  **Required Statement Date:**  Allows the CSE to select the requested statement date from the dropdown.
+
+        -  **Revised PDD (Print Due Date):**  Shows the revised PDD based on the new statement date selection. The CSE must check the disclaimer: “This is a tentative date assuming the statement date month is of 31 days.” Explain this to the customer accordingly.
+
+        -  **Remark:**  A text will appear in the remark section based on the selected revised statement date, stating “Statement cycle from 22 to 12,” indicating the change from 22 to 12.
+
+        -  **MANDATORY:**  The CSE should copy the remark text into the SR comments to ensure the statement cycle is changed successfully.
+
+    -  **Eligibility Check Failed:**
+
+        -  If the information is fetched through the API, a checkbox will appear stating  **‘Eligibility check manually.’**
+
+        -  In this case, the CSE will have to check the eligibility manually on PRIME as per the existing process.
+
+        -  Tick the checkbox indicating that the customer is eligible, select the revised PDD, communicate the revised PDD to the customer, copy the remark text in the SR comments, and then proceed to save the SR.
+
+         [IMAGE: knowledge-article-cc-billing-cycle-change--d77439a5-5820-4cff-841c-3910219b312e--03.png]
+
+    -  **Status Code:**
+
+        -  Change the status code to “Sent to Ops” and save the SR.
+
+        -  The status code will change to “With Ops – WIP,” and the SR will be processed as per the defined SLA TAT.
+
+         [IMAGE: knowledge-article-cc-billing-cycle-change--55e9595f-48d5-4f13-bf6c-f6a7b05504ad--04.png]
+
+        -  NOTE: -  **Once the SR is successfully processed the information reflects immediately on Optimus.**
+
+    -  **Tips for Handling Billing Cycle Change Requests**
+
+        -  Ensure you mention all the available billing cycle dates to the customer. The current available dates are:  **1, 12, 17, 19, 20, 22, 24** as the 1st and 12th cycle dates, are often missed.
+
+        -  If a customer requests a billing date that is not available (e.g., 2nd or 4th),  **suggest the nearest available options.**  For example, if the customer asks for the 2nd, recommend the 1st cycle date.
+
+        -  If a customer asks for a date prior to the 17th, and the 2nd is not available, recommend the 1st or 12th cycle dates.
+
+        -  After making changes, you can check the next statement date in the Prime system.  Navigate to:  **Last statement date > Scroll down > Cycling > Next statement date** .
+
+          [IMAGE: knowledge-article-cc-billing-cycle-change--cce6b317-3c16-46a4-aa04-cf3222572d64--05.png]
+### Scenario 2: Customer was informed that the billing cycle has been changed from the 17th to the 20th :
+
+
+Starting from January 2025, **a portion of the customer base from the 17 th statement billing cycle will be moved to a newly introduced billing cycle date of the 20 th . This change aims to enhance billing operational efficiency.**
+
+
+**Key Points:**
+
+-  **Communication:** An email was sent on December 18, 2024, to selected credit card holders informing them about the changes effective from the January 2025 statement.
+
+    -  A reminder communication will be sent on  **January 14, 2025.**
+
+-  **New On boarding:** For FIRST Millennia, FIRST Wealth, Retail Business Card, and FIRST SWYP, the new billing cycle date will be the 20th instead of the 17th.
+
+
+**Exclusions:** 
+FIRST Private, FIRST Wow, and Commercial cards and Delinquent customers will be excluded from this migration.
+
+
+**PRIME Memo:**
+
+-  "Customer account is moved from the 17th billing cycle to the 20th of every month. First intimation mail sent on 15th Jan 2025. Cycle change confirmation communication sent on 17th Feb 2025 through email and SMS. “
+
+
+**Last Statement Date**
+
+-  To check the next statement date in PRIME:  **Navigate to the Last statement date > Scroll down > Cycling > Next statement date.**
+
+ [IMAGE: knowledge-article-cc-billing-cycle-change--f6ab85ec-e44d-4a8b-b73d-e2fd546cadf8--06.png]
+
+
+**CSEs Actionable:**
+
+-  If a customer  **does not want to change their cycle date, raise a Query SR.**  They will be excluded from the change at the time of implementation.
+
+-  If customers request to change their statement cycle back to the 17th or to other available dates  **(1, 12, 19, 20, 22, 24),**  CSE should raise a statement cycle change request SR as per the existing process.
+
+-  For escalations related to communication logs retrieval, reach out to the Campaign Support Team, led by Sudhanshu Sinha.  **Loop in @Campaign Support Team.**
+
+-  **Query Tagging**
+
+    -  **When customer is ok:**
+
+        -  **LOB** : Credit Card
+
+        -  **Case Type** : Query
+
+        -  **Category** : Statement
+
+        -  **Sub Category** : Statement Cycle Change
+
+         [IMAGE: knowledge-article-cc-billing-cycle-change--c3bc8a8f-c55f-49e6-8dca-5c09e34f146e--07.png]
+
+        -  **Mandatory SR Remarks** : “Details shared for billing cycle change”
+
+        -  **Status Code** : FTR & Closed
+
+    -  **When customer is not ok:**
+
+        -  **Mandatory SR Remarks** : “Don’t want to change 17th Billing Cycle”
+
+        -  **Status Code** : FTR & Closed
+
+         [IMAGE: knowledge-article-cc-billing-cycle-change--b8cefced-f68c-4cc3-b1ea-056d0b6ab15c--08.png]
+
+-  **Request Tagging:**
+
+    -  Navigate to: Credit Card >> Request >> Statement >> Statement Cycle Change
+
+    -  Select the Credit Card in the ‘Account Number’ field.
+
+     [IMAGE: knowledge-article-cc-billing-cycle-change--8f37ce4e-8e68-4377-bdd7-03eb1ad39591--09.png]
+
+-  **Eligibility Check:**
+
+    -  In the  **‘Additional Fields’**  section, click on the  **‘Check Eligibility’**  icon  **(However, as per the update received, this icon is not functioning as planned. Hence, CSEs are requested to check the eligibility manually every time they raise a statement cycle change request).**
+
+    -  **If the customer is not eligible:**
+
+        -  An error will appear stating “Billing Cycle Change Availed.”
+
+        -  While saving the SR, another error will appear stating “Credit card not eligible for statement cycle change.”
+
+    -  **If the customer is eligible:**
+
+        -  The following four fields will appear after clicking the icon:
+
+        -  **Current Statement Date:**  Displays the current statement date (e.g., ‘22’).
+
+        -  **Required Statement Date:**  Allows the CSE to select the requested statement date from the dropdown.
+
+        -  **Revised PDD (Print Due Date):**  Shows the revised PDD based on the new statement date selection. The CSE must check the disclaimer: “This is a tentative date assuming the statement date month is of 31 days.” Explain this to the customer accordingly.
+
+        -  **Remark:**  A text will appear in the remark section based on the selected revised statement date, stating “Statement cycle from 22 to 12,” indicating the change from 22 to 12.
+
+        -  **MANDATORY:**  The CSE should copy the remark text into the SR comments to ensure the statement cycle is changed successfully.
+
+    -  **Eligibility Check Failed:**
+
+        -  If the information is fetched through the API, a checkbox will appear stating  **‘Eligibility check manually.’**
+
+        -  In this case, the CSE will have to check the eligibility manually on PRIME as per the existing process.
+
+        -  Tick the checkbox indicating that the customer is eligible, select the revised PDD, communicate the revised PDD to the customer, copy the remark text in the SR comments, and then proceed to save the SR.
+
+         [IMAGE: knowledge-article-cc-billing-cycle-change--7a49c4d2-b64d-4c04-9f87-eed50d515ef4--10.png]
+
+    -  **Status Code:**
+
+        -  Change the status code to “Sent to Ops” and save the SR.
+
+        -  The status code will change to “With Ops – WIP,” and the SR will be processed as per the defined SLA TAT.
+
+         [IMAGE: knowledge-article-cc-billing-cycle-change--6982dbe1-c3f5-4450-b790-5a7862135cea--11.png]
+## 6. Objection handling, resolution, Retention (if applicable):
+
+
+**Objection 1: Why can’t I change my billing cycle mor e than once?**
+**Script:** Sir/Madam, according to RBI guidelines, cardholders can modify their billing cycle once a year for added flexibility. While customers start with a fixed billing cycle, they can change it annually to better suit their needs. This ensures a balance between customer flexibility and bank efficiency. Currently, we offer statement billing on the 1st, 12th, 17th, 19th, 22nd, and 24th of each month. Could you please let me know if one of these dates works for you?
+
+**Objection 2: Why can’t I choose a different date for my statement billing cycle?**
+**Script:**  Banks usually set specific billing cycle dates to keep everything running smoothly and consistently. Currently, we offer statement billing on the 1st, 12th, 17th, 19th, 22nd, and 24th of each month. These dates are designed to provide flexibility while maintaining operational efficiency. Could you please let me know if one of these dates works for you?
+
+## 7. Related Bank Policies & Regulations:
+
+
+Not Applicable
+## 8. Digital nudge:
+
+
+Not Applicable
+
+## 9. Repeat Avoidance
+
+-  **Thorough Pre-checks:**  Before initiating the request, ensure all pre-checks are completed meticulously. Verify the card’s active status, check for any delinquencies, confirm no overdue amounts, and review the customer’s history for previous requests.  This helps in avoiding any rejections later on.
+
+-  **Clear and Detailed Communication:**  Clearly explain the process, eligibility criteria, and available date options to the customer. Make sure they understand that they can choose from the 17th, 19th, 22nd, and 24th of the month, and if they insist, the 1st or 12th can also be accommodated.  This transparency helps in setting the right expectations.
