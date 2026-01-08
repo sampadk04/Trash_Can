@@ -1,0 +1,35 @@
+# Context Voice Bots Collections:
+
+## Description:
+* We have a voice bot framework setup for bank EMI collections (reminder calls,  payment confirmation calls etc).
+* The voice bot talks with the customer realtime.
+* Since, this is being done in India, for now we are supporting only Hindi and English languages.
+* The high level architecture uses the following:
+    - A LLM is used to generate the text that the bot will speak. (NOTE: Customer profile and other relevant data is provided as context to the LLM to generate personalized conversations).
+    - Then a fast TTS converts the text to speech durin the call.
+    - Based on the customer response, a speech to text (STT) engine converts the speech to text to get the customer response.
+    - The customer response text is again provided as context to the LLM to generate the next response.
+    - This continues till the call is completed.
+
+
+## Node Traffic Flow:
+* The voice bot needs to follow a predefined conversation flow. This flow can be defined using a flow chart or a decision tree like structure.
+
+* For example, suppose we are focussing one flow in particular, i.e. let's consider the flow and prompts for a 'Hinglish' speaking 'female' voice bot.
+Here are the 3 prompt files that are being used:
+
+
+* Now, here is a python code that determined the flow:
+
+
+* Here are a couple of cleaned up transcripts (complete/incomplete) from actual calls as reference:
+
+
+* Here is a customer-specific configuration file, that is used to populate the context for the LLM to generate personalized conversations:
+
+
+* Now, after every call, the collected transcript passes through a disposition engine. Here, some parameters of the configuration are updated after every call based on the previous call's disposition, like customer intents. Again we automate the disposition extraction using an LLM. Below is the prompt file used for disposition extraction. This also contains all the details regarding the various disposition classes.
+
+
+# Task
+Now, based on these info create a 'VB_Collection_README.md' that describes the voice bot collection flow and orchestration to get an idea of the overall flow.
