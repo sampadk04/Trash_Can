@@ -104,7 +104,7 @@ NODES = [
             ConfirmLocationPreferenceVocodeActionConfig()
         ],
         "allowInterruptions": False,
-        "enable_delayed_processing": False,
+        "enable_delayed_processing": True,
         "min_delay_time": 1,
         "max_delay_time": 3,
         "delay_time_step": 0.5
