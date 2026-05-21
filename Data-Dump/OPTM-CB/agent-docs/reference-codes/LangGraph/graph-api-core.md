@@ -204,4 +204,3 @@ This keeps routing local to the node that made the decision. It works well for L
 
 - Graph API overview: https://docs.langchain.com/oss/python/langgraph/graph-api
 - Use the Graph API: https://docs.langchain.com/oss/python/langgraph/use-graph-api
-- Local article: `LangGraph-resources/Articles/Graph-API/Graph-API-Overview.md`

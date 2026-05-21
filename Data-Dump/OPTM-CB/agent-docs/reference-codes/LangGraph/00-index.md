@@ -33,12 +33,6 @@ This pack intentionally excludes:
 - Official Use the Graph API guide: https://docs.langchain.com/oss/python/langgraph/use-graph-api
 - Official persistence docs: https://docs.langchain.com/oss/python/langgraph/persistence
 - Official streaming docs: https://docs.langchain.com/oss/python/langgraph/streaming
-- Official LangGraph v1 migration guide: https://docs.langchain.com/oss/python/migrate/langgraph-v1
-- Local design articles:
-  - `LangGraph-resources/Articles/Workflows-and-Agents.md`
-  - `LangGraph-resources/Articles/Thinking-in-LangGraphs.md`
-  - `LangGraph-resources/Articles/Graph-API/Graph-API-Overview.md`
-  - `LangGraph-resources/Articles/Graph-API/Use-the-Graph-API.md`
 - `chub` IDs fetched:
   - `langgraph/package --lang py` version 1.1.0, updated 2026-03-11
 

@@ -209,4 +209,3 @@ From `Workflows-and-Agents.md`:
 
 - Use the Graph API: https://docs.langchain.com/oss/python/langgraph/use-graph-api
 - Workflows and agents: https://docs.langchain.com/oss/python/langgraph/workflows-agents
-- Local article: `LangGraph-resources/Articles/Workflows-and-Agents.md`

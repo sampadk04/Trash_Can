@@ -2,8 +2,6 @@
 
 ## State Design Principles
 
-From the local `Thinking-in-LangGraphs.md` article:
-
 - Start with the process, then turn each distinct step into a node.
 - Put data in state when later nodes need it or when it is expensive/impossible to recompute.
 - Keep state raw. Format prompts inside nodes.
@@ -164,4 +162,3 @@ Use one state schema first. Split into input/output/private schemas only when:
 
 - Graph API overview: https://docs.langchain.com/oss/python/langgraph/graph-api
 - Use the Graph API: https://docs.langchain.com/oss/python/langgraph/use-graph-api
-- Local article: `LangGraph-resources/Articles/Thinking-in-LangGraphs.md`

@@ -1,9 +1,5 @@
 # Designing Systems with LangGraph
 
-These notes synthesize the local articles:
-
-- `LangGraph-resources/Articles/Thinking-in-LangGraphs.md`
-- `LangGraph-resources/Articles/Workflows-and-Agents.md`
 
 ## Start with the Process
 

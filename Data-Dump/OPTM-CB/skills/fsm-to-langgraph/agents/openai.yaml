@@ -1,0 +1,4 @@
+interface:
+  display_name: "FSM to LangGraph"
+  short_description: "Migrate Optimus FSM handlers to LangGraph"
+  default_prompt: "Use $fsm-to-langgraph to migrate an Optimus Query Bot FSM intent handler to a parallel LangGraph implementation."
