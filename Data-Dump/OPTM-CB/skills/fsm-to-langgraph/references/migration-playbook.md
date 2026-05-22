@@ -247,30 +247,86 @@ Keep it minimal and high-level, but include enough concrete comparison to catch 
 
 One short paragraph on whether the graph preserves the FSM's core flow.
 
+## Use Case Classification
+
+| Dimension | Value | Notes |
+| --- | --- | --- |
+| Journey family | Slot-filling / widget-driven / backend-callback / hybrid / other | Pick the closest label; add a new label if needed. |
+| Primary interrupt type | App widget / backend callback / user text / none / mixed | Identify what stops a turn and resumes later. |
+| LLM usage | Classifier / extractor / confirmation / none / other | List all bounded LLM jobs. |
+| Deterministic rules | Validation / selection / formatting / state normalization / none | Summarize non-LLM business logic. |
+| External side effects | App action / backend execution request / final status display / none / other | State who owns the side effect. |
+
 ## Source To Target Map
 
 | Component | FSM Source | LangGraph Target | Notes |
 | --- | --- | --- | --- |
+
+## FSM Inventory Checklist
+
+| Item | Source Truth | Migrated? | Notes |
+| --- | --- | --- | --- |
+| Initial/default state fields |  |  |  |
+| Persisted journey_state merge rules |  |  |  |
+| Allowed additional_data callback fields |  |  |  |
+| Per-turn reset flags |  |  |  |
+| Ordered guard clauses / transition priority |  |  |  |
+| LLM helpers and output schemas |  |  |  |
+| Deterministic validators/selectors |  |  |  |
+| App-facing intent mapping |  |  |  |
+| Abort/off-topic behavior |  |  |  |
+| Success/failure/final-status behavior |  |  |  |
+| Formatting-sensitive bot responses |  |  |  |
+| Known legacy bugs or inconsistencies |  |  |  |
 
 ## Parity Matrix
 
 | Area | FSM Behavior | LangGraph Behavior | Parity |
 | --- | --- | --- | --- |
 
+## Transition And Turn Coverage
+
+| FSM Trigger / Guard | LangGraph Route / Node | Terminal This Turn? | Expected Next Callback/Input | Parity |
+| --- | --- | --- | --- | --- |
+
 ## State Variable Flow
 
-| State Field | FSM Role | LangGraph Role | Durable? | Notes |
-| --- | --- | --- | --- | --- |
+| State Field | FSM Role | LangGraph Role | Durable? | Reset Each Turn? | Source: persisted/app/user/LLM/rule | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
 
 ## Prompt And Classifier Parity
 
 | LLM Helper | FSM Prompt/Schema | LangGraph Model/Prompt | Risk |
 | --- | --- | --- | --- |
 
+## Callback And Side-Effect Parity
+
+| Action / Callback | FSM Emission | LangGraph Emission | Resume Field(s) | Owner | Parity |
+| --- | --- | --- | --- | --- | --- |
+
 ## App Contract Parity
 
 | App Intent/Response | FSM | LangGraph | Parity |
 | --- | --- | --- | --- |
+
+## Persistence And Transient State
+
+| Field / Group | Saved By FSM | Saved By LangGraph | Excluded? | Notes |
+| --- | --- | --- | --- | --- |
+
+## Unseen Pattern Review
+
+Use this section for future handlers that do not fit the current six journeys.
+
+| Question | Answer |
+| --- | --- |
+| Does this handler introduce a new journey family or graph shape? |  |
+| Does it need new shared models, validators, or adapters? |  |
+| Does it introduce new callback fields or app-facing intents? |  |
+| Does it own any backend side effect that must not run twice in shadow mode? |  |
+| Does it require persistence fields not present in the FSM state? |  |
+| Are there source behaviors intentionally fixed rather than preserved? |  |
+| What remains unmapped or uncertain? |  |
 
 ## Coding Convention Check
 

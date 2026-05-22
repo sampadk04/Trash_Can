@@ -126,6 +126,8 @@ Use lower snake_case for `<usecase_slug>` and align it with the target folder. T
 - state variable flow comparison
 - prompt/classifier/extractor comparison
 - app-facing intent and response-shape comparison
+- transition/callback/side-effect inventory for the specific use case type
+- explicit notes for unsupported, unseen, or newly discovered usecase patterns
 - coding-structure/convention check
 - remaining risks and manual parity scenarios
 
