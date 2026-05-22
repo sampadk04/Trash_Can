@@ -131,27 +131,27 @@ Avoid open-ended agent loops for these handlers.
 
 ## ChatOpenAI Factory
 
-Use one shared factory for migrated graph nodes:
+Use the repo's shared factory for migrated graph nodes. The current implementation lives at `app/services/optimus_query_bot/langgraph_intent_handlers/utils/llm.py` and uses both sync and async HTTP clients:
 
 ```python
-from httpx import AsyncClient
-from openai import AsyncOpenAI
+from httpx import AsyncClient, Client
 from langchain_openai import ChatOpenAI
 
 def build_chat_openai(reasoning_effort: str = "low") -> ChatOpenAI:
-    http_client = AsyncClient(verify=False)
-    async_openai = AsyncOpenAI(http_client=http_client)
+    http_client = Client(verify=False)
+    async_http_client = AsyncClient(verify=False)
     return ChatOpenAI(
-        model="gpt-5.4",
+        model="gpt-5.2",
         use_responses_api=True,
         reasoning={"effort": reasoning_effort},
         temperature=None,
         max_retries=2,
-        root_async_client=async_openai,
+        http_client=http_client,
+        http_async_client=async_http_client,
     )
 ```
 
-If the installed `langchain-openai` version expects `http_async_client`, `async_client`, or another client keyword, adapt only the factory and keep node code importing this function.
+If the installed `langchain-openai` version changes client keyword names, adapt only the factory and keep node code importing this function. Do not instantiate `ChatOpenAI` directly inside individual usecase nodes.
 
 ## Persistence Reminder
 

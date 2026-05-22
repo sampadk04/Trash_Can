@@ -23,6 +23,21 @@ LLM helpers are bounded classifiers/extractors. They should not execute business
 
 Widget/backend handoffs are per-turn terminal nodes. Emit the app action, end the graph invocation, and wait for `additional_data` on the next request.
 
+## Reference Pattern: OPEN_FD
+
+Use `open-fd-reference-pattern.md` as the self-contained reference for complex slot-filling migrations. It captures the reusable lessons from the `OPEN_FD` work without relying on migrated code files being present.
+
+Reusable implementation patterns from `OPEN_FD`:
+
+- `models.py` keeps journey state plus structured-output models.
+- `prompts.py` keeps bounded classifier/extractor prompts as uppercase constants.
+- `nodes.py` keeps async node functions plus private deterministic helpers.
+- `graph.py` defines `Literal` route aliases and named routing functions.
+- `handler.py` invokes one compiled graph, resolves `NextAction`, calls `durable_state`, and returns the `RuleEngine` response shape.
+- Invalid replacement values should not accidentally erase prior valid state unless the FSM does so.
+- Prompt compression must preserve important legacy examples and disambiguation rules.
+- Use the migration report to capture any prompt drift, state cleanup, or parity risk.
+
 ## LOAN_NOC
 
 Primary durable state:
@@ -259,9 +274,7 @@ START
   -> classify_fd_control
   -> route_fd_control
   -> extract_fd_amount
-  -> validate_fd_amount
   -> extract_fd_tenure
-  -> select_fd_plan
   -> prepare_fd_confirmation
   -> END
 ```
@@ -283,3 +296,5 @@ Important details to preserve:
 - `consumed_value` prevents reusing one bare number as both amount and tenure.
 - Plan selection is deterministic: matching tenure range, highest interest rate, then narrowest range.
 - `change_amount_and_tenure` updates both slots from one message.
+- Invalid amount changes preserve a previous valid amount and stop the turn asking for a corrected amount.
+- `OPEN_FD` excludes graph/base-only transient fields such as `widget_response` from saved state.

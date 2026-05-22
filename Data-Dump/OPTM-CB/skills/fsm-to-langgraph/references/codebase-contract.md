@@ -117,8 +117,11 @@ additional_data
 control_intent
 route
 route_reason
+consumed_value
 extraction scratch fields
 ```
+
+Some fields are present on `BaseJourneyState` for cross-handler convenience but are not durable for every FSM. For example, `OPEN_FD` excludes `widget_response` through `durable_state(..., extra_exclusions={"widget_response"})` because the legacy FD state does not save it.
 
 ## Existing Coupling To Separate
 

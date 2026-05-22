@@ -203,11 +203,28 @@ app/services/optimus_query_bot/
         ...
       upi/
         ...
-      fixed_deposit/
+      <usecase_slug>/
         ...
 ```
 
 Each `usecase_handlers/<intent>/handler.py` should expose one small adapter class or function consumed by `langgraph_rule_engine.py`. The actual graph construction should live in `graph.py`, while state models and node implementations stay close to that use case.
+
+### 4.1 Coding Conventions
+
+Use the `OPEN_FD` migration lessons as a style reference, but do not depend on live migrated `OPEN_FD` files being present:
+
+- migrate one intent/use case at a time
+- use lower snake_case use-case folders such as `open_fd`, `loan_noc`, and `pay_to_mobile`
+- keep state and structured-output models in `models.py`
+- keep prompts as uppercase constants in `prompts.py`
+- keep async node functions and private deterministic helpers in `nodes.py`
+- keep `Literal` route aliases, route functions, and `build_<usecase>_graph()` in `graph.py`
+- keep the graph adapter small in `handler.py`: build/invoke graph, resolve `NextAction`, call `durable_state`, and return the existing RuleEngine response shape
+- make nodes return partial dictionaries; do not mutate the input state in place
+- set `next_action` in action nodes and keep legacy flag-to-action fallback only as adapter safety
+- use shared `BaseJourneyState`, `NextAction`, `build_chat_openai`, and `durable_state`
+- use `extra_exclusions` for base fields that are not durable for a specific legacy FSM
+- preserve legacy prompt labels, examples, and disambiguation rules when migrating to structured output
 
 ## 5. Shared Pydantic Models
 
@@ -260,28 +277,28 @@ class LoanNocState(BaseJourneyState):
 
 Do not use the existing LLM gateway for migrated graph nodes. Use `ChatOpenAI` with structured output.
 
-Recommended shared factory:
+Use the shared factory in `app/services/optimus_query_bot/langgraph_intent_handlers/utils/llm.py`. Current shape:
 
 ```python
-from httpx import AsyncClient
-from openai import AsyncOpenAI
+from httpx import AsyncClient, Client
 from langchain_openai import ChatOpenAI
 
 
 def build_chat_openai(reasoning_effort: str = "low") -> ChatOpenAI:
-    http_client = AsyncClient(verify=False)
-    async_openai = AsyncOpenAI(http_client=http_client)
+    http_client = Client(verify=False)
+    async_http_client = AsyncClient(verify=False)
     return ChatOpenAI(
-        model="gpt-5.4",
+        model="gpt-5.2",
         use_responses_api=True,
         reasoning={"effort": reasoning_effort},
         temperature=None,
         max_retries=2,
-        root_async_client=async_openai,
+        http_client=http_client,
+        http_async_client=async_http_client,
     )
 ```
 
-If the installed `langchain-openai` version expects `http_async_client` instead of `root_async_client`, keep the same SSL behavior and adapt only this factory. For chat-completions-only versions, the equivalent may be `async_client=async_openai.chat.completions`. All graph nodes should import the factory rather than constructing model clients directly.
+If the installed `langchain-openai` version changes client keyword names, keep the same SSL behavior and adapt only this factory. All graph nodes should import the factory rather than constructing model clients directly.
 
 Use low reasoning effort for bounded classifiers and extractors. Increase only if a specific handler needs more careful disambiguation.
 
@@ -774,20 +791,21 @@ For classifier nodes that both update state and choose the next node, `Command` 
 
 ## 13. Soft Migration Sequence
 
-Recommended order:
+`OPEN_FD` informed the reference conventions for complex slot-filling migrations. Keep those conventions documented in portable migration notes rather than relying on the migrated files as durable references.
+
+Continue with one remaining handler at a time. A practical sequence is:
 
 1. Add the `langgraph_intent_handlers/` package with shared `models/`, `utils/`, and empty `usecase_handlers/`.
 2. Add `langgraph_rule_engine.py` with the same external process contract as `rule_engine.py`.
 3. Add feature-flag or config-based engine selection while keeping FSM as the default.
-4. Migrate `LOAN_NOC` into `langgraph_intent_handlers/usecase_handlers/loan_noc/`.
+4. Migrate `LOAN_NOC` into `langgraph_intent_handlers/usecase_handlers/loan_noc/`, following the `OPEN_FD` file structure where applicable.
 5. Run parity tests against the FSM handler and enable LangGraph for `LOAN_NOC` only in lower environments.
 6. Move `LOAN_NOC` through shadow mode, canary mode, and full-intent default only after observed parity.
 7. Repeat the same pattern for `PAY_CREDIT_CARD_BILL`.
 8. Repeat for `EMAIL_UPDATE`.
 9. Repeat for `MOBILE_UPDATE` using the intended email-like flow, fixing the current state mismatches in the graph implementation rather than editing the FSM handler.
 10. Repeat for `PAY_TO_MOBILE`.
-11. Repeat for `OPEN_FD`.
-12. Keep FSM handlers available until every migrated intent has enough production confidence and there is an explicit deprecation decision.
+11. Keep FSM handlers available until every migrated intent has enough production confidence and there is an explicit deprecation decision.
 
 Each handler migration should be a small PR-sized change:
 
@@ -795,9 +813,68 @@ Each handler migration should be a small PR-sized change:
 - add node functions
 - add graph builder
 - add adapter tests
+- add a migration analysis report with parity matrix
 - add the handler to the LangGraph registry
 - enable the intent through config only after parity is verified
 - keep the legacy FSM handler as the rollback path
+
+### 13.1 Migration Analysis Report
+
+Every migrated handler should include a minimal report in:
+
+```text
+app/services/optimus_query_bot/fsm-langgraph-migration-report/<usecase_slug>_migration_analysis.md
+```
+
+Use lower snake_case for `<usecase_slug>` and align it with the target folder. The report should be short but concrete enough to catch missed functionality:
+
+```markdown
+# <INTENT> FSM To LangGraph Migration Analysis
+
+## Scope
+
+- Source FSM:
+- Target LangGraph:
+- Contract references:
+
+## Overall Finding
+
+## Source To Target Map
+
+| Component | FSM Source | LangGraph Target | Notes |
+| --- | --- | --- | --- |
+
+## Parity Matrix
+
+| Area | FSM Behavior | LangGraph Behavior | Parity |
+| --- | --- | --- | --- |
+
+## State Variable Flow
+
+| State Field | FSM Role | LangGraph Role | Durable? | Notes |
+| --- | --- | --- | --- | --- |
+
+## Prompt And Classifier Parity
+
+| LLM Helper | FSM Prompt/Schema | LangGraph Model/Prompt | Risk |
+| --- | --- | --- | --- |
+
+## App Contract Parity
+
+| App Intent/Response | FSM | LangGraph | Parity |
+| --- | --- | --- | --- |
+
+## Coding Convention Check
+
+## Remaining Risks
+
+## Suggested Parity Scenarios
+
+| Scenario | Input/State | Expected App Intent |
+| --- | --- | --- |
+```
+
+Future migration reports should live under `app/services/optimus_query_bot/fsm-langgraph-migration-report/`.
 
 ## 14. Testing Checklist
 
@@ -811,6 +888,7 @@ For every migrated handler, test these levels:
 - Widget callbacks skip text classification where legacy behavior does.
 - Status success and failure produce the same final response category and abort behavior.
 - `LangGraphRuleEngine` saves the same durable state keys as `RuleEngine`, excluding only `bot_response` and internal graph-only fields.
+- Migration analysis report compares source and target behavior with a parity matrix.
 - Engine selection defaults to FSM when an intent is not enabled for LangGraph.
 - Engine selection can route one enabled intent to LangGraph without affecting other intents.
 - Fallback to FSM is possible by config only, without code rollback.
