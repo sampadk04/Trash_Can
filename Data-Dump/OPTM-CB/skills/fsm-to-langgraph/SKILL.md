@@ -59,7 +59,7 @@ If the local repo has `agent-docs/`, prefer those files as the source of truth w
 
 1. Identify the target intent and source FSM handler.
 2. Read `rule_engine.py` and the source handler's `initialize_state`, `_update_state_from_request`, `handle`, helper classifiers/extractors, validators, and `get_intent_data`.
-3. Build a parity map: persisted fields, one-turn flags, app callback fields, app-facing intents, abort behavior, status handling, and edge cases.
+3. Build a parity map: persisted fields, one-turn flags, app callback fields, app-facing intents, abort behavior, status handling, intentionally out-of-scope decorators/instrumentation, and edge cases.
 4. Create or extend the parallel LangGraph package; do not edit the FSM handler except for tiny integration hooks that are strictly necessary.
 5. Model state with Pydantic `BaseModel` classes and rich `Field` descriptions. Routing/classifier/extractor fields must describe exact allowed values, when each is produced, and how downstream graph routes use the value. Use `ConfigDict(extra="allow")` during V1 so unknown legacy keys are not dropped.
 6. Split the FSM into explicit nodes:
@@ -84,8 +84,20 @@ If the local repo has `agent-docs/`, prefer those files as the source of truth w
 - Keep Redis persistence owned by `StateManager`; do not add LangGraph checkpointers as the primary V1 persistence layer.
 - Store only durable business state. Exclude `bot_response`, `next_action`, `user_query`, `journey_data`, `additional_data`, and classifier scratch fields before saving unless intentionally durable.
 - Use `ChatOpenAI` with Pydantic structured output for migrated LLM classifier/extractor nodes. Do not recreate legacy JSON-schema gateway calls inside graph nodes unless the user explicitly requires it for compatibility.
+- Never store raw LangChain/OpenAI response objects, `AIMessage` objects, parsed response wrappers, or structured-output Pydantic instances in graph state. Immediately unpack structured output into plain serializable fields such as strings, numbers, booleans, lists, and dicts.
 - Prefer deterministic validators over LLM reasoning for business rules.
 - Keep classifiers narrow and bounded; these handlers are workflow graphs, not open-ended agents.
+
+## Decorators Out Of Scope
+
+Do not add decorators as part of handler migration.
+
+- Non-LangChain/LangGraph decorators are out of scope for this skill, including project tracing, metrics, auth/context, retry, or logging decorators such as `@traced()`.
+- Do not copy decorators from legacy FSM code into new LangGraph files.
+- Do not add decorators to `LangGraphRuleEngine`, handler adapters, graph builders, or nodes unless the user explicitly asks in the same task.
+- LangChain/LangGraph framework APIs such as `StateGraph`, `add_conditional_edges`, `Command`, and `.with_structured_output(...)` remain in scope; this rule only excludes ordinary Python/project decorators.
+- Record omitted decorators/instrumentation in the migration report as an intentional out-of-scope item, not as a parity defect.
+- Do not port legacy `log_usage(...)` calls during this migration. ChatOpenAI-compatible usage logging will be handled later; note it as a deferred observability item only if relevant.
 
 ## Prompt Preservation
 
@@ -113,6 +125,7 @@ Follow the bundled `OPEN_FD` reference pattern as the style reference:
 - Keep only the `process(...)` adapter and action resolution in `handler.py`.
 - Name nodes with the usecase prefix where it improves clarity: `merge_fd_inputs`, `reset_fd_flags`, `classify_fd_control`.
 - Make nodes `async` when they may call an LLM or are part of an async graph path; return partial `dict` updates.
+- Node return dictionaries must be serialization-clean. Return `{"control_intent": decision.intent}` rather than `{"decision": decision}` or any raw model response.
 - Do not mutate input state in place.
 - Normalize legacy string flags at the graph boundary, especially `"yes"/"no"` and `"true"/"false"`.
 - Keep app intent constants near the nodes or action model; avoid scattering string literals when a usecase repeats them.
@@ -120,6 +133,7 @@ Follow the bundled `OPEN_FD` reference pattern as the style reference:
 - Use `durable_state(...)` or an equivalent shared helper to exclude transient graph fields before saving.
 - Add `extra_exclusions` for base fields that are not durable for a specific FSM, such as `widget_response` in `OPEN_FD`.
 - Prefer explicit `NextAction` creation in action nodes; keep legacy flag fallback only as an adapter safeguard.
+- Do not add or copy non-LangChain/LangGraph decorators; decorators are intentionally out of scope and will be introduced manually later.
 - Keep prompts behaviorally equivalent to legacy prompts and as close to verbatim as practical. Preserve important examples, enum labels, disambiguation rules, strict restrictions, and refusal/abort criteria.
 - Write descriptive Pydantic `Field(...)` metadata for every state field and structured-output field that affects routing, persistence, app actions, or validation. Avoid vague descriptions such as "Next workflow decision"; name the exact enum values and their routing meaning.
 - Update `GRAPH_HANDLER_REGISTRY` incrementally and keep fallback to the FSM engine for unknown or disabled handlers.
@@ -142,6 +156,7 @@ Use lower snake_case for `<usecase_slug>` and align it with the target folder. T
 - prompt/classifier/extractor comparison
 - app-facing intent and response-shape comparison
 - transition/callback/side-effect inventory for the specific use case type
+- out-of-scope decorator/instrumentation notes
 - explicit notes for unsupported, unseen, or newly discovered usecase patterns
 - coding-structure/convention check
 - remaining risks and manual parity scenarios

@@ -136,6 +136,27 @@ Mirror the bundled `OPEN_FD` reference pattern:
 - Use `durable_state(state, extra_exclusions={...})` for usecase-specific transient exclusions.
 - Reuse shared `BaseJourneyState`, `NextAction`, `build_chat_openai`, and `durable_state` instead of redefining them in each use case.
 - Make Pydantic `Field` descriptions rich enough for a reviewer to understand routing without reading the node. Avoid generic text like "classified intent"; document enum values, route names, and legacy behavior.
+- Keep graph state serialization-clean. Do not return or persist raw `AIMessage`, OpenAI response objects, parsed response wrappers, tool-call objects, or structured-output Pydantic model instances from nodes. Unpack them immediately to primitive fields.
+- Do not add or copy non-LangChain/LangGraph decorators. Project decorators such as tracing, metrics, auth/context, retry, or logging decorators are intentionally out of scope and will be introduced manually later.
+
+## Decorators Out Of Scope
+
+Inventory decorators and instrumentation only to document that they are intentionally omitted:
+
+```text
+RuleEngine.process_intent -> @traced() in legacy path
+LangGraphRuleEngine.process_intent -> do not add @traced() during this migration
+Legacy gptcall helpers -> log_usage(...) deferred for ChatOpenAI-compatible follow-up
+```
+
+Rules:
+
+- Do not copy legacy decorators to new LangGraph files.
+- Do not add decorators to graph nodes, graph builders, handlers, or rule-engine methods unless explicitly requested.
+- Non-LangChain/LangGraph decorators are out of scope, including `@traced()` and any future project decorators for metrics, retries, auth, logging, or context propagation.
+- LangChain/LangGraph APIs such as graph builders, conditional edges, `Command`, and structured-output helpers remain in scope because they are framework constructs, not project decorators.
+- Do not port legacy `log_usage(...)` calls in the LangGraph handler migration. ChatOpenAI-compatible usage logging is a deferred follow-up and should not block handler parity.
+- The migration report should list omitted decorators as intentional out-of-scope work.
 
 ## Graph Pattern
 
@@ -204,6 +225,7 @@ async def classify_email_confirmation(state: EmailState) -> dict:
         ("system", EMAIL_CONFIRMATION_PROMPT),
         ("human", state.user_query),
     ])
+    # Return plain serializable values only; do not put `decision` itself in graph state.
     return {"confirmation": decision.confirmation}
 ```
 
@@ -295,6 +317,7 @@ One short paragraph on whether the graph preserves the FSM's core flow.
 | Ordered guard clauses / transition priority |  |  |  |
 | LLM helpers and output schemas |  |  |  |
 | Deterministic validators/selectors |  |  |  |
+| Out-of-scope decorators, tracing, logging, and usage instrumentation |  |  |  |
 | App-facing intent mapping |  |  |  |
 | Abort/off-topic behavior |  |  |  |
 | Success/failure/final-status behavior |  |  |  |
@@ -327,6 +350,11 @@ For every row, compare the legacy helper prompt section-by-section. Mark risk as
 
 | Action / Callback | FSM Emission | LangGraph Emission | Resume Field(s) | Owner | Parity |
 | --- | --- | --- | --- | --- | --- |
+
+## Out-Of-Scope Decorator And Observability Notes
+
+| Decorator / Instrumentation | FSM Location | LangGraph Location | Action | Notes |
+| --- | --- | --- | --- | --- |
 
 ## App Contract Parity
 

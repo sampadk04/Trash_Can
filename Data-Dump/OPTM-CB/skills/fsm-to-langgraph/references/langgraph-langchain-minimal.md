@@ -122,6 +122,12 @@ decision = await router.ainvoke([
     ("system", "Classify the user's message for this active payment journey."),
     ("human", state.user_query),
 ])
+
+# Good: store only plain values in graph state.
+return {"route": decision.next_step}
+
+# Bad: do not store Pydantic decisions, AIMessage/raw response objects, or parsed wrappers.
+# return {"decision": decision}
 ```
 
 Good uses:
@@ -134,6 +140,8 @@ Good uses:
 Avoid open-ended agent loops for these handlers.
 
 For migrated legacy prompts, keep the original prompt text and examples as close to verbatim as practical. Pydantic descriptions reinforce the schema; they do not replace the curated prompt rules.
+
+Serialization rule: LangGraph state and node updates should contain plain serializable values. Raw LangChain/OpenAI response objects often contain parsed/tool-call wrapper fields that trigger Pydantic serialization warnings when the graph state is dumped. Extract the fields you need immediately and discard the raw response object.
 
 ## ChatOpenAI Factory
 

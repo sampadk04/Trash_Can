@@ -42,6 +42,8 @@ RuleEngine
 
 Do not change the caller-facing response shape for V1.
 
+`RuleEngine.process_intent(...)` is decorated with `@traced()` in the legacy path. Do not add `@traced()` or other non-LangChain/LangGraph project decorators during handler migration; decorators will be introduced manually later. Legacy handler LLM helper calls currently use `log_usage(...)`, but ChatOpenAI-compatible usage logging is intentionally deferred and should not be ported as part of the handler migration.
+
 ## Handler Registry
 
 Current intents:
