@@ -110,7 +110,11 @@ from pydantic import BaseModel, Field
 
 class RouteDecision(BaseModel):
     next_step: Literal["extract", "abort", "off_topic", "continue"] = Field(
-        description="Next bounded workflow decision."
+        description=(
+            "Bounded route selected from the legacy classifier: 'extract' runs slot extraction, "
+            "'abort' ends the journey with an empty app intent, 'off_topic' increments the legacy off-topic counter, "
+            "and 'continue' follows the current missing-slot or callback-resume flow."
+        )
     )
 
 router = model.with_structured_output(RouteDecision)
@@ -128,6 +132,8 @@ Good uses:
 - journey-specific off-topic/abort detection
 
 Avoid open-ended agent loops for these handlers.
+
+For migrated legacy prompts, keep the original prompt text and examples as close to verbatim as practical. Pydantic descriptions reinforce the schema; they do not replace the curated prompt rules.
 
 ## ChatOpenAI Factory
 

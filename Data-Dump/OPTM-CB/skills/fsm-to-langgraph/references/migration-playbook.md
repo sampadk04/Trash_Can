@@ -66,24 +66,31 @@ YesNo = Literal["yes", "no"]
 
 
 class NextAction(BaseModel):
-    intent: str = Field(description="App-facing intent name to return for this turn.")
-    intent_type: str = Field(description="Clarification, Execution, Redirection, or legacy-compatible value.")
-    additional_data: dict[str, Any] = Field(default_factory=dict)
+    intent: str = Field(
+        description="Exact app-facing intent name returned for this turn, e.g. PAY_TO_MOBILE.SHOW_CONTACT_LIST or empty string for legacy abort."
+    )
+    intent_type: str = Field(
+        description="Exact app-facing intent_type returned for this turn: Clarification, Execution, Redirection, or empty string for legacy abort."
+    )
+    additional_data: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Action-specific payload merged into response additional_data, such as payee_name or amount_to_be_paid.",
+    )
 
 
 class BaseJourneyState(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    journey: str = Field(description="Journey identifier.")
-    user_query: str = ""
-    bot_response: str = ""
-    abort: YesNo = "no"
-    off_topic_count: int = 0
-    widget_response: YesNo = "no"
-    next_action: NextAction | None = None
+    journey: str = Field(description="Legacy journey identifier used for persistence and default app intent mapping.")
+    user_query: str = Field(default="", description="Latest user utterance for this graph turn; transient and not persisted.")
+    bot_response: str = Field(default="", description="Customer-facing response for this turn; excluded from persisted journey state.")
+    abort: YesNo = Field(default="no", description="Legacy abort flag. Use 'yes' only when the active journey should terminate.")
+    off_topic_count: int = Field(default=0, description="Number of off-topic turns seen in this active journey; preserve legacy threshold behavior.")
+    widget_response: YesNo = Field(default="no", description="Whether this turn resumed from an app widget callback; durable only if the legacy FSM saved it.")
+    next_action: NextAction | None = Field(default=None, description="Normalized app action selected by the graph; adapter converts this to intent_list and excludes it from persistence.")
 ```
 
-Use handler-specific fields with the same durable names as the FSM where possible.
+Use handler-specific fields with the same durable names as the FSM where possible. Every routing, classifier, extractor, app-action, persistence, or validation field must have a useful `Field(description=...)`. The description should include exact enum values and downstream meaning, for example which graph route consumes `control_intent`, what `expected_slot` disambiguates, or which app action a one-turn flag emits.
 
 ## Shared Node Types
 
@@ -118,7 +125,7 @@ Mirror the bundled `OPEN_FD` reference pattern:
 - Use lower snake_case usecase folders and files.
 - Use Pydantic state classes named after the journey, for example `OpenFDState`.
 - Keep structured-output models near the state model in `models.py`.
-- Use uppercase prompt constants in `prompts.py`.
+- Use uppercase prompt constants in `prompts.py`, with names that map one-to-one to legacy LLM helper names.
 - Use private helper functions in `nodes.py` for deterministic domain rules.
 - Name graph nodes with the usecase prefix when useful: `merge_fd_inputs`, `reset_fd_flags`, `classify_fd_control`.
 - Use async node functions that return partial dictionaries; do not mutate input state in place.
@@ -128,6 +135,7 @@ Mirror the bundled `OPEN_FD` reference pattern:
 - Keep action fallback logic in the handler only as a safety net; action nodes should set `next_action` directly.
 - Use `durable_state(state, extra_exclusions={...})` for usecase-specific transient exclusions.
 - Reuse shared `BaseJourneyState`, `NextAction`, `build_chat_openai`, and `durable_state` instead of redefining them in each use case.
+- Make Pydantic `Field` descriptions rich enough for a reviewer to understand routing without reading the node. Avoid generic text like "classified intent"; document enum values, route names, and legacy behavior.
 
 ## Graph Pattern
 
@@ -160,9 +168,20 @@ def build_graph():
 
 Use conditional edges for visible routing. Use `Command` for classifier nodes that both set state and decide the next node.
 
-## LLM Pattern
+## Prompt And LLM Pattern
 
-Migrate JSON-schema gateway helpers to Pydantic structured output:
+Migrate JSON-schema gateway helpers to Pydantic structured output, but preserve the legacy prompts. The old FSM prompts are curated behavioral assets; do not rewrite or shorten them unless there is a documented reason.
+
+Prompt migration rules:
+
+- Copy the legacy system prompt into `prompts.py` nearly verbatim.
+- Preserve examples, decision tables, enum definitions, strict rules, negative instructions, tone constraints, and output-format expectations.
+- Preserve contextual user-message construction: pass the same state/context variables the FSM prompt used, such as existing state, expected slot, consumed value, rate card, current email/mobile, or callback status.
+- Remove only JSON-schema boilerplate that is now enforced by Pydantic; do not remove behavioral instructions.
+- If the Pydantic model changes field names, adapt the prompt examples to the new names without losing examples.
+- If any prompt content is removed, merged, or reworded, record it in the migration analysis report as a prompt parity risk.
+
+Structured output fields must be descriptive at routing points:
 
 ```python
 from typing import Literal
@@ -171,7 +190,10 @@ from pydantic import BaseModel, Field
 
 class EmailConfirmation(BaseModel):
     confirmation: Literal["yes", "no", "ambiguous"] = Field(
-        description="Whether the user confirms, rejects, or gives an unclear response."
+        description=(
+            "Legacy EMAIL_UPDATE confirmation classifier output: 'yes' routes to MFA_EMAIL, "
+            "'no' aborts the journey with cancellation copy, and 'ambiguous' asks the user to confirm again."
+        )
     )
 
 
@@ -296,8 +318,10 @@ One short paragraph on whether the graph preserves the FSM's core flow.
 
 ## Prompt And Classifier Parity
 
-| LLM Helper | FSM Prompt/Schema | LangGraph Model/Prompt | Risk |
-| --- | --- | --- | --- |
+| LLM Helper | Legacy Prompt Sections Preserved? | Legacy Examples/Decision Tables Preserved? | Pydantic Model/Fields | Changed Or Removed Prompt Content | Risk |
+| --- | --- | --- | --- | --- | --- |
+
+For every row, compare the legacy helper prompt section-by-section. Mark risk as high when examples, decision tables, strict negative rules, enum definitions, or user-context variables were removed or summarized.
 
 ## Callback And Side-Effect Parity
 

@@ -83,15 +83,24 @@ Keep bounded Pydantic output models near the state model:
 ControlDecision:
   intent enum: change_amount, change_tenure, change_default, abort, other, none, change_amount_and_tenure
   reasoning: concise explanation for debugging
+  Field descriptions must explain how each enum affects routing:
+    abort -> abort node
+    change_default -> redirection node
+    other -> off-topic handling
+    change_amount / change_amount_and_tenure -> amount extraction
+    change_tenure -> tenure extraction
+    none -> continue current missing-slot flow
 
 AmountExtraction:
   bot_response
   amount field or null
+  Field descriptions must preserve legacy meaning: null means ask for amount and stop this turn.
 
 TenureExtraction:
   bot_response
   tenure in days or null
   show_interest_rate_chart true/false
+  Field descriptions must preserve legacy meaning: null plus chart=true means ask the app/user to choose from available schemes.
 ```
 
 For other handlers, use the same pattern with journey-specific enums and fields.
@@ -174,7 +183,7 @@ Use explicit `Literal` aliases for route functions so node names stay visible an
 
 ## Prompt Parity Rules
 
-When shortening legacy prompts, preserve:
+Do not shorten legacy prompts by default. Copy the old FSM prompt as close to verbatim as practical, then adapt only the output schema references for Pydantic structured output. Preserve:
 
 - all enum labels and their meanings
 - explicit examples for abort and off-topic behavior
@@ -183,8 +192,10 @@ When shortening legacy prompts, preserve:
 - expected-slot rules for bare numbers
 - consumed-value rules that block reusing the same numeric token
 - rules for default changes such as nominee, auto-renewal, payout, or maturity instructions
+- strict output rules and "do not infer" restrictions
+- decision tables and quick-reference examples
 
-The graph prompt does not need to be byte-for-byte identical, but the report must call out any prompt compression risk.
+The graph prompt does not need to be byte-for-byte identical, but it should remain section-for-section comparable. The report must call out every removed, compressed, or materially reworded prompt rule as a parity risk.
 
 ## Deterministic Validation Rules
 
@@ -220,5 +231,6 @@ Use the report to explicitly verify:
 - off-topic count increments and abort threshold match legacy behavior
 - app-facing intent names and intent types match
 - prompt compression preserves all important disambiguation examples
+- Pydantic field descriptions at routing points are specific enough to prevent enum misuse
 - fields added by `BaseJourneyState` do not leak into saved legacy state
 - every one-turn flag is reset before the current turn's action is emitted

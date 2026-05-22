@@ -61,7 +61,7 @@ If the local repo has `agent-docs/`, prefer those files as the source of truth w
 2. Read `rule_engine.py` and the source handler's `initialize_state`, `_update_state_from_request`, `handle`, helper classifiers/extractors, validators, and `get_intent_data`.
 3. Build a parity map: persisted fields, one-turn flags, app callback fields, app-facing intents, abort behavior, status handling, and edge cases.
 4. Create or extend the parallel LangGraph package; do not edit the FSM handler except for tiny integration hooks that are strictly necessary.
-5. Model state with Pydantic `BaseModel` classes and `Field` descriptions. Use `ConfigDict(extra="allow")` during V1 so unknown legacy keys are not dropped.
+5. Model state with Pydantic `BaseModel` classes and rich `Field` descriptions. Routing/classifier/extractor fields must describe exact allowed values, when each is produced, and how downstream graph routes use the value. Use `ConfigDict(extra="allow")` during V1 so unknown legacy keys are not dropped.
 6. Split the FSM into explicit nodes:
    - merge persisted state and allowed callback fields
    - reset one-turn UI/action flags
@@ -87,6 +87,19 @@ If the local repo has `agent-docs/`, prefer those files as the source of truth w
 - Prefer deterministic validators over LLM reasoning for business rules.
 - Keep classifiers narrow and bounded; these handlers are workflow graphs, not open-ended agents.
 
+## Prompt Preservation
+
+Treat legacy FSM prompts as tried-and-tested behavioral assets. The default migration posture is prompt preservation, not prompt rewriting.
+
+- Copy the legacy system prompts into `prompts.py` as close to verbatim as practical.
+- Preserve role, context, task, enum definitions, strict rules, negative instructions, examples, decision tables, output constraints, tone constraints, and edge-case disambiguation.
+- Preserve user-message construction context, including state snippets, `expected_slot`, `consumed_value`, `rate_card`, existing values, or callback/status context.
+- When replacing JSON schema dictionaries with Pydantic structured output, remove only schema boilerplate that is now represented by the model. Do not remove behavioral instructions or examples.
+- If prompt structure must change, adapt examples and decision tables into the new structure instead of summarizing them away.
+- Keep enum labels one-to-one with the FSM unless an intentional behavior fix is documented in the migration report.
+- Do not compress prompts for neatness. Shorter prompts are allowed only when the removed text is duplicate boilerplate and the report states what was removed.
+- For each migrated LLM helper, the migration report must compare old prompt sections to new prompt sections and mark any missing/changed rule as a parity risk.
+
 ## Coding Conventions
 
 Follow the bundled `OPEN_FD` reference pattern as the style reference:
@@ -94,6 +107,7 @@ Follow the bundled `OPEN_FD` reference pattern as the style reference:
 - Use one snake_case usecase folder per journey, for example `open_fd`, `loan_noc`, `email_update`, `pay_to_mobile`.
 - Keep state and structured-output Pydantic models in `models.py`.
 - Keep prompts as uppercase constants in `prompts.py`.
+- Store legacy-derived prompts in `prompts.py` with names that map one-to-one to the legacy helper, for example `FD_CONTROL_PROMPT`, `FD_AMOUNT_PROMPT`, or `EMAIL_CONFIRMATION_PROMPT`.
 - Keep graph assembly and route functions in `graph.py`; use `Literal` route aliases such as `ControlRoute` or `AmountRoute`.
 - Keep node implementations and private deterministic helpers in `nodes.py`.
 - Keep only the `process(...)` adapter and action resolution in `handler.py`.
@@ -106,7 +120,8 @@ Follow the bundled `OPEN_FD` reference pattern as the style reference:
 - Use `durable_state(...)` or an equivalent shared helper to exclude transient graph fields before saving.
 - Add `extra_exclusions` for base fields that are not durable for a specific FSM, such as `widget_response` in `OPEN_FD`.
 - Prefer explicit `NextAction` creation in action nodes; keep legacy flag fallback only as an adapter safeguard.
-- Keep prompts semantically equivalent to legacy prompts, even when shorter. Preserve important examples, enum labels, disambiguation rules, and refusal/abort criteria.
+- Keep prompts behaviorally equivalent to legacy prompts and as close to verbatim as practical. Preserve important examples, enum labels, disambiguation rules, strict restrictions, and refusal/abort criteria.
+- Write descriptive Pydantic `Field(...)` metadata for every state field and structured-output field that affects routing, persistence, app actions, or validation. Avoid vague descriptions such as "Next workflow decision"; name the exact enum values and their routing meaning.
 - Update `GRAPH_HANDLER_REGISTRY` incrementally and keep fallback to the FSM engine for unknown or disabled handlers.
 
 ## Migration Analysis Report
