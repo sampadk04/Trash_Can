@@ -1,5 +1,0 @@
-# Code Translation Using Skill
-
-- Use this skill to translate the code for the 'OPEN_FD' or fixed deposite handler to LangGraph.
-
-(No need to run and test the code, this is just a local environment running 'conda activate dev_venv' and assume the production environment is setup correctly with all dependencies installed.)
