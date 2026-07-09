@@ -1,34 +1,244 @@
 Prompt ->
 A professional presenter faces the camera and speaks calmly in a measured, conversational manner. Neutral relaxed facial expression. Subtle natural lip articulation with restrained jaw movement. Minimal facial expressions, occasional natural blinking, and very small natural head movements. The head remains mostly stable and centered. Static locked camera, medium close-up, soft even studio lighting.
 
----
+# Skyreels Docker ComfyUI setup
 
-# Top-k Performance Evaluation
+I want to run this repo at "https://github.com/SkyworkAI/SkyReels-V3" in a Docker container.
+Specifically I want to test their talking avatar model - Talking Avatar	19B-720P	🤗 Hugging Face / 🤖 ModelScope
+We want to load the model from it's checkpoints instead of downloading.
+Specifically we want to use the --low_vram flag to enable FP8 weight-only quantization and block offload. (To make it run on 24 GB VRAM itself)
 
-I want to update our V2 architecture to potentially make the latency lower.
+This container is going to run in a Sagemaker Notebook Instance, specifically in `ml.g5.8xlarge` or `ml.g5.12xlarge` instances (which have 1 or 4x NVIDIA A10G GPU).
 
-Inorder to do that we want to potentially parallelize the LLM calls for the PreProcessor and MID blocks.
+Here are all the necessary hardware and software details (i.e. nvidia driver version, CUDA version, docker info etc) ->
+"""
+```
+Notebook instance type
+ml.g5.8xlarge
+Volume size
+512GB EBS
+Platform identifier
+Amazon Linux 2023, Jupyter Lab 4(notebook-al2023-v1)
+Minimum IMDS Version
+2
+```
 
-Now, currently we are inherently forced to make sequential calls for the PreProcessor and MID blocks because we sort of use the re-phrased query from the PreProcessor block to use it to identify the top-k intents to send to the MID block.
-If we can somehow only use the current turn's raw query (and maybe previous turn's re-phrased query) to reliably identify the top-k intents to send to the MID block, then we can parallelize the PreProcessor and MID blocks. (We won't have to rely on just the current turn's re-phrased query to identify the top-k intents to send to the MID block.)
 
-So, inorder to reliably decide if we can parallelize the PreProcessor and MID blocks we need to evaluate the performance of the following scenarios ->
-Case 1: Suppose we are at Turn 'i'. In this turn we are using the raw user query directly for top-k.
-Case 2: Suppose we are at Turn 'i'. In this turn we are using re-phrased query from Pre-processor.
-Case 3: Suppose we are at Turn 'i'. In this turn we are using the re-phrased query from Pre-processor and the raw query from Turn 'i-1' appended with the current turn's raw query as string for top-k.
-Case 4: Suppose we are at Turn 'i'. In this turn we will use the re-phrased query from Pre-processor from Turn 'i-1' and get the top-k. We will also use the raw query from Turn 'i' and get the top-k. Then we will then take the union (and combine based on the rankings) of the top-k intents from both and send it to the MID block.
+```
+(python3) [ec2-user@ip-172-16-45-141 ]$ nvidia-smi
+Thu Jul  2 15:57:13 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 595.71.05              Driver Version: 595.71.05      CUDA Version: 13.2     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A10G                    On  |   00000000:00:1B.0 Off |                    0 |
+|  0%   31C    P0             59W /  300W |       0MiB /  23028MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   1  NVIDIA A10G                    On  |   00000000:00:1C.0 Off |                    0 |
+|  0%   31C    P0             58W /  300W |       0MiB /  23028MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   2  NVIDIA A10G                    On  |   00000000:00:1D.0 Off |                    0 |
+|  0%   31C    P0             60W /  300W |       0MiB /  23028MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   3  NVIDIA A10G                    On  |   00000000:00:1E.0 Off |                    0 |
+|  0%   31C    P0             59W /  300W |       0MiB /  23028MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+```
 
 
+```
+(python3) [ec2-user@ip-172-16-45-141 ]$  nvidia-smi -L
+GPU 0: NVIDIA A10G (UUID: GPU-c0e204fa-2eec-5b27-7078-96b3a9df3b8b)
+GPU 1: NVIDIA A10G (UUID: GPU-6e8bc06b-97a4-3ac6-a721-48e896e24a5b)
+GPU 2: NVIDIA A10G (UUID: GPU-b97b4af3-38d9-5865-69f0-2e4bd7c17b4f)
+GPU 3: NVIDIA A10G (UUID: GPU-d71ae085-1375-ec66-b8ed-e075e73a4156)
+```
 
-Inorder to evaluate these cases properly and easier we will need to setup the following ->
-- A dataset of user queries and their corresponding expected intents. (Note: We only care about the top-k intents for each query, and what is their ranking, we want the expencted intent to be ranked as high as possible)
-- We should have 2 different types of datasets ->
-    * One where the query should be explicit in terms of the intent they want. Here the passing criterion is simple, the expected intent (or target intent) should be in the top-k intents returned by the model.
-    * The other where, the query is ambigous, but upon clearing ambiguity, the expected intent should be in the top-k intents returned by the model.
-    Here the passing criterion is more fluid. 
-    If we are in the MID Is Ambiguos State (and the user is repsonding, this response should be part of the dataset), then the expected intent should be in the top-k intents
-    * The second query is ambigous dataset is something we will create later, for now we will focus on the first dataset, where the query is explicit in terms of the intent they want and the top-k should directly contain the expected intent.
-    * Store the dataset inside the 'data' folder.
-- We will also need a wrapper functions to wrap the embedding model and the top-k retrival code from redis (this should automatically adapt according the V2 code).
-- We should be able to easily switch the strategy for each run.
-- The run should decide what all columns to have in the final csv.
+```
+(python3) [ec2-user@ip-172-16-45-141 ]$ which nvcc
+/usr/local/cuda-12.8/bin/nvcc
+(python3) [ec2-user@ip-172-16-45-141 ]$ nvcc --version
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Feb_21_20:23:50_PST_2025
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+```
+
+```
+(python3) [ec2-user@ip-172-16-45-141 ]$ lsmod | grep -E 'nvidia|nouveau' || true
+nvidia_modeset       1748992  0
+video                  77824  1 nvidia_modeset
+nvidia_uvm           2072576  4
+nvidia_fs             376832  0
+nvidia              14807040  44 nvidia_uvm,efa_nv_peermem,nvidia_fs,gdrdrv,nvidia_modeset
+drm                   753664  5 drm_kms_helper,drm_shmem_helper,nvidia,simpledrm
+i2c_core              122880  6 drm_kms_helper,nvidia,i2c_smbus,psmouse,i2c_piix4,drm
+backlight              28672  3 video,drm,nvidia_modeset
+```
+
+```
+(python3) [ec2-user@ip-172-16-45-141 ]$ docker info
+Client:
+ Version:    25.0.14
+ Context:    default
+ Debug Mode: false
+ Plugins:
+  buildx: Docker Buildx (Docker Inc.)
+    Version:  0.12.1
+    Path:     /usr/libexec/docker/cli-plugins/docker-buildx
+
+Server:
+ Containers: 1
+  Running: 0
+  Paused: 0
+  Stopped: 1
+ Images: 7
+ Server Version: 25.0.16
+ Storage Driver: overlay2
+  Backing Filesystem: extfs
+  Supports d_type: true
+  Using metacopy: false
+  Native Overlay Diff: true
+  userxattr: false
+ Logging Driver: json-file
+ Cgroup Driver: systemd
+ Cgroup Version: 2
+ Plugins:
+  Volume: local
+  Network: bridge host ipvlan macvlan null overlay
+  Log: awslogs fluentd gcplogs gelf journald json-file local splunk syslog
+ Swarm: inactive
+ Runtimes: io.containerd.runc.v2 nvidia runc
+ Default Runtime: runc
+ Init Binary: docker-init
+ containerd version: 
+ runc version: 488fc13e1f2d3d73ec36d829fdf2c98e47dc5ae8
+ init version: de40ad0
+ Security Options:
+  seccomp
+   Profile: builtin
+  cgroupns
+ Kernel Version: 6.12.90-120.164.amzn2023.x86_64
+ Operating System: Amazon Linux 2023.12.20260611
+ OSType: linux
+ Architecture: x86_64
+ CPUs: 48
+ Total Memory: 186.7GiB
+ Name: ip-172-16-45-141.ap-south-1.compute.internal
+ ID: d3fedc3e-88b5-447f-9d7e-5f4e69d3e576
+ Docker Root Dir: /home/ec2-user/SageMaker/docker
+ Debug Mode: false
+ Experimental: false
+ Insecure Registries:
+  127.0.0.0/8
+ Live Restore Enabled: false
+
+(python3) [ec2-user@ip-172-16-45-141 ]$ docker info | grep -i -E 'Runtimes|Default Runtime|nvidia'
+ Runtimes: io.containerd.runc.v2 nvidia runc
+ Default Runtime: runc
+```
+
+
+```
+(python3) [ec2-user@ip-172-16-45-141 ]$ which nvidia-container-cli || true
+/usr/bin/nvidia-container-cli
+(python3) [ec2-user@ip-172-16-45-141 ]$ nvidia-container-cli --version || true
+cli-version: 1.19.1
+lib-version: 1.19.1
+build date: 2026-05-21T17:25+0000
+build revision: 7585946c6471402577e14474d7c56ca5be0348d7
+build compiler: gcc 4.8.5 20150623 (Red Hat 4.8.5-44)
+build platform: x86_64
+build flags: -D_GNU_SOURCE -D_FORTIFY_SOURCE=2 -DNDEBUG -std=gnu11 -O2 -g -fdata-sections -ffunction-sections -fplan9-extensions -fstack-protector -fno-strict-aliasing -fvisibility=hidden -Wall -Wextra -Wcast-align -Wpointer-arith -Wmissing-prototypes -Wnonnull -Wwrite-strings -Wlogical-op -Wformat=2 -Wmissing-format-attribute -Winit-self -Wshadow -Wstrict-prototypes -Wunreachable-code -Wconversion -Wsign-conversion -Wno-unknown-warning-option -Wno-format-extra-args -Wno-gnu-alignof-expression -Wl,-zrelro -Wl,-znow -Wl,-zdefs -Wl,--gc-sections
+```
+"""
+
+Give me a minimal docker setup with the necessary cuda related drivers and python installed, so that I can clone the repo and experiment inside container bash.
+
+Make sure to make it mount the necessary folders in my root, for easier access to input files and checkpoints.
+
+This docker container should be able to run in the `ml.g5.12xlarge` instance.
+
+You can take insipiration from this minimal comfyui setup for a separate model (to run that model's workflow on comfyui inside the docker container) ->
+```
+FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+
+WORKDIR /workspace
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    UV_LINK_MODE=copy \
+    CUDA_HOME=/usr/local/cuda \
+    VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:/root/.local/bin:$PATH"
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    git \
+    wget \
+    curl \
+    ca-certificates \
+    build-essential \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-venv \
+    python-is-python3 \
+    ffmpeg \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libsndfile1 \
+    ninja-build \
+ && rm -rf /var/lib/apt/lists/* \
+ && curl -LsSf https://astral.sh/uv/install.sh | sh
+
+RUN git clone --depth=1 https://github.com/Comfy-Org/ComfyUI.git /workspace/ComfyUI
+
+RUN uv venv /opt/venv
+
+RUN uv pip install --upgrade pip setuptools wheel ninja packaging psutil
+
+RUN uv pip install \
+    --index-url https://download.pytorch.org/whl/cu124 \
+    torch==2.6.0 \
+    torchvision==0.21.0 \
+    torchaudio==2.6.0
+
+RUN uv pip install -r /workspace/ComfyUI/requirements.txt
+
+RUN uv pip uninstall opencv-python || true \
+ && uv pip install opencv-python-headless
+
+RUN mkdir -p \
+    /workspace/storage \
+    /workspace/ComfyUI/models \
+    /workspace/ComfyUI/input \
+    /workspace/ComfyUI/output \
+    /workspace/ComfyUI/user/default/workflows
+
+VOLUME ["/workspace/storage", "/workspace/ComfyUI/models", "/workspace/ComfyUI/input", "/workspace/ComfyUI/output", "/workspace/ComfyUI/user/default/workflows"]
+
+WORKDIR /workspace/ComfyUI
+
+EXPOSE 8188
+
+CMD ["python", "main.py", "--listen", "0.0.0.0", "--port", "8188", "--lowvram", "--reserve-vram", "2"]
+```
