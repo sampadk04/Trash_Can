@@ -128,3 +128,12 @@ services:
               capabilities:
                 - gpu
 ```
+
+```
+mkdir -p \
+  storage \
+  storage-models/models \
+  storage-user/input \
+  storage-user/output \
+  storage-user/workflows
+```
