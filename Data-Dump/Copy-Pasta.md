@@ -50,21 +50,56 @@ RUN git clone --depth=1 \
     https://github.com/Comfy-Org/ComfyUI.git \
     /workspace/ComfyUI
 
-RUN git clone --depth=1 \
-    https://github.com/Comfy-Org/ComfyUI-Manager.git \
-    /workspace/ComfyUI/custom_nodes/comfyui-manager
-
 RUN uv pip install -r /workspace/ComfyUI/requirements.txt
 
-RUN uv pip install -r /workspace/ComfyUI/custom_nodes/comfyui-manager/requirements.txt
 
-# FlashAttention 2 prebuilt wheel.
+# ---------------------------------------------------------
+# Custom nodes
+# ---------------------------------------------------------
+
+RUN git clone --depth=1 \
+    https://github.com/kijai/ComfyUI-WanVideoWrapper.git \
+    /workspace/ComfyUI/custom_nodes/ComfyUI-WanVideoWrapper \
+ && git clone --depth=1 \
+    https://github.com/rgthree/rgthree-comfy.git \
+    /workspace/ComfyUI/custom_nodes/rgthree-comfy \
+ && git clone --depth=1 \
+    https://github.com/kijai/ComfyUI-KJNodes.git \
+    /workspace/ComfyUI/custom_nodes/ComfyUI-KJNodes \
+ && git clone --depth=1 \
+    https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git \
+    /workspace/ComfyUI/custom_nodes/ComfyUI-VideoHelperSuite \
+ && git clone --depth=1 \
+    https://github.com/DemonGatanjieu/Anomalous_Model_Browser.git \
+    /workspace/ComfyUI/custom_nodes/Anomalous_Model_Browser
+
+
+# ---------------------------------------------------------
+# Custom node dependencies
+# ---------------------------------------------------------
+
+RUN uv pip install \
+    -r /workspace/ComfyUI/custom_nodes/ComfyUI-WanVideoWrapper/requirements.txt \
+ && uv pip install \
+    -r /workspace/ComfyUI/custom_nodes/rgthree-comfy/requirements.txt \
+ && uv pip install \
+    -r /workspace/ComfyUI/custom_nodes/ComfyUI-KJNodes/requirements.txt \
+ && uv pip install \
+    -r /workspace/ComfyUI/custom_nodes/ComfyUI-VideoHelperSuite/requirements.txt
+
+
+# ---------------------------------------------------------
+# FlashAttention 2 prebuilt wheel
 # Avoids source compilation and wheel-build loops.
+# ---------------------------------------------------------
+
 RUN set -eux; \
     ABI="$(python -c 'import torch; print("TRUE" if torch._C._GLIBCXX_USE_CXX11_ABI else "FALSE")')"; \
     WHEEL="flash_attn-2.8.3.post1+cu12torch2.8cxx11abi${ABI}-cp312-cp312-linux_x86_64.whl"; \
     URL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3.post1/${WHEEL}"; \
-    uv pip install --no-deps "${URL}"
+    uv pip install --no-deps "${URL}"; \
+    python -c "import torch, flash_attn; print('Torch:', torch.__version__); print('CUDA:', torch.version.cuda); print('FlashAttention:', flash_attn.__version__)"
+
 
 RUN mkdir -p \
     /workspace/storage \
