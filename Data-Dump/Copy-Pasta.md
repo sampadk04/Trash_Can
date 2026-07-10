@@ -50,7 +50,13 @@ RUN git clone --depth=1 \
     https://github.com/Comfy-Org/ComfyUI.git \
     /workspace/ComfyUI
 
+RUN git clone --depth=1 \
+    https://github.com/Comfy-Org/ComfyUI-Manager.git \
+    /workspace/ComfyUI/custom_nodes/comfyui-manager
+
 RUN uv pip install -r /workspace/ComfyUI/requirements.txt
+
+RUN uv pip install -r /workspace/ComfyUI/custom_nodes/comfyui-manager/requirements.txt
 
 # FlashAttention 2 prebuilt wheel.
 # Avoids source compilation and wheel-build loops.
