@@ -3,46 +3,94 @@ A professional presenter faces the camera and speaks calmly in a measured, conve
 
 ```python
 # %% MAINTAIN JUPYTER NOTEBOOK CELLS
+
 # Import and Define
+
 from __future__ import annotations
 
 import os
 import shutil
+import subprocess
+import sys
 import time
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+
 SCRIPT_DIR = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd().resolve()
 
-# Point this at your ComfyUI models directory.
-COMFYUI_MODELS = Path(os.environ.get("COMFYUI_MODELS_DIR", "./ComfyUI/models"))
 
-# Put all Hugging Face cache data on the attached EBS volume, not the root disk.
-DEFAULT_EBS_CACHE = SCRIPT_DIR / ".hf-cache"
-HF_HOME = Path(os.environ.get("MODEL_DOWNLOAD_CACHE_DIR", DEFAULT_EBS_CACHE)).resolve()
+# ---------------------------------------------------------
+# Paths
+# ---------------------------------------------------------
+
+COMFYUI_MODELS = Path(
+    os.environ.get(
+        "COMFYUI_MODELS_DIR",
+        SCRIPT_DIR / "storage-models" / "models",
+    )
+).resolve()
+
+
+# ---------------------------------------------------------
+# Hugging Face cache on EBS
+# ---------------------------------------------------------
+
+DEFAULT_EBS_CACHE = SCRIPT_DIR / "storage" / ".hf-cache"
+
+HF_HOME = Path(
+    os.environ.get(
+        "MODEL_DOWNLOAD_CACHE_DIR",
+        DEFAULT_EBS_CACHE,
+    )
+).resolve()
+
 HF_HUB_CACHE = HF_HOME / "hub"
 HF_XET_CACHE = HF_HOME / "xet"
 PIP_CACHE_DIR = HF_HOME / "pip"
+
 
 HF_HUB_CACHE.mkdir(parents=True, exist_ok=True)
 HF_XET_CACHE.mkdir(parents=True, exist_ok=True)
 PIP_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
+
 os.environ["HF_HOME"] = str(HF_HOME)
 os.environ["HF_HUB_CACHE"] = str(HF_HUB_CACHE)
 os.environ["HF_XET_CACHE"] = str(HF_XET_CACHE)
 os.environ["PIP_CACHE_DIR"] = str(PIP_CACHE_DIR)
+
 os.environ.setdefault("HF_XET_HIGH_PERFORMANCE", "1")
 os.environ.setdefault("HF_XET_NUM_CONCURRENT_RANGE_GETS", "32")
 
+
+# ---------------------------------------------------------
+# Install huggingface_hub if needed
+# ---------------------------------------------------------
+
 try:
     from huggingface_hub import hf_hub_download
-except ImportError as exc:
-    ! pip install huggingface_hub
+except ImportError:
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-U",
+            "huggingface_hub[hf_xet]",
+        ]
+    )
+
     from huggingface_hub import hf_hub_download
 
+
+# ---------------------------------------------------------
+# Hugging Face URL parser
+# ---------------------------------------------------------
 
 @dataclass(frozen=True)
 class HfUrl:
@@ -59,6 +107,7 @@ def parse_hf_url(url: str) -> HfUrl:
         raise ValueError(f"Not a valid Hugging Face file URL: {url}")
 
     marker = parts[2]
+
     if marker not in {"resolve", "blob"}:
         raise ValueError(f"Expected '/resolve/' or '/blob/' in URL: {url}")
 
@@ -69,19 +118,32 @@ def parse_hf_url(url: str) -> HfUrl:
     )
 
 
-def materialize_file(cached_path: str | Path, output_path: str | Path) -> None:
+# ---------------------------------------------------------
+# Materialize cached file into ComfyUI model directory
+# ---------------------------------------------------------
+
+def materialize_file(
+    cached_path: str | Path,
+    output_path: str | Path,
+) -> None:
+
     src = Path(cached_path).resolve()
     dst = Path(output_path)
+
     dst.parent.mkdir(parents=True, exist_ok=True)
 
     tmp_dst = dst.with_name(dst.name + ".tmp")
+
     if tmp_dst.exists():
         tmp_dst.unlink()
 
     try:
         os.link(src, tmp_dst)
+        method = "hardlink"
+
     except OSError:
         shutil.copy2(src, tmp_dst)
+        method = "copy"
 
     os.replace(tmp_dst, dst)
 
@@ -91,12 +153,24 @@ def materialize_file(cached_path: str | Path, output_path: str | Path) -> None:
             f"Expected {src.stat().st_size}, got {dst.stat().st_size}."
         )
 
+    print(f"Materialized via {method}: {dst}")
 
-def download_file(model_url: str, model_path: str | Path, filename: str | None = None) -> str:
+
+# ---------------------------------------------------------
+# Download one file
+# ---------------------------------------------------------
+
+def download_file(
+    model_url: str,
+    model_path: str | Path,
+    filename: str | None = None,
+) -> str:
+
     model_path = Path(model_path)
     model_path.mkdir(parents=True, exist_ok=True)
 
     hf_file = parse_hf_url(model_url)
+
     source_name = Path(hf_file.filename).name
     output_name = filename or source_name
     output_path = model_path / output_name
@@ -105,6 +179,8 @@ def download_file(model_url: str, model_path: str | Path, filename: str | None =
         print(f"File already exists: {output_path}")
         return str(output_path)
 
+    print(f"Downloading: {hf_file.repo_id}/{hf_file.filename}")
+
     cached_path = hf_hub_download(
         repo_id=hf_file.repo_id,
         filename=hf_file.filename,
@@ -112,76 +188,132 @@ def download_file(model_url: str, model_path: str | Path, filename: str | None =
         cache_dir=HF_HUB_CACHE,
         force_download=False,
     )
-    materialize_file(cached_path, output_path)
+
+    materialize_file(
+        cached_path,
+        output_path,
+    )
+
     return str(output_path)
 
 
+# ---------------------------------------------------------
+# SkyReels V3 workflow models
+# ---------------------------------------------------------
+
 MODELS_TO_DOWNLOAD = [
-    # Official INT8 sharded DiT.
+
+    # -----------------------------------------------------
+    # 1. SkyReels V3 A2V FP8 model
+    #
+    # ComfyUI:
+    # models/diffusion_models/SkyreelsV3/
+    # -----------------------------------------------------
+
     {
-        "directory": "longcat/LongCat-Video-Avatar-1.5/base_model_int8",
-        "url": "https://huggingface.co/meituan-longcat/LongCat-Video-Avatar-1.5/resolve/main/base_model_int8/config.json",
+        "directory": "diffusion_models/SkyreelsV3",
+        "url": "https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/resolve/main/SkyReelsV3/Wan21-SkyReelsV3-A2V_fp8_scaled_mixed.safetensors",
     },
-    {
-        "directory": "longcat/LongCat-Video-Avatar-1.5/base_model_int8",
-        "url": "https://huggingface.co/meituan-longcat/LongCat-Video-Avatar-1.5/resolve/main/base_model_int8/quantization_config.json",
-    },
-    {
-        "directory": "longcat/LongCat-Video-Avatar-1.5/base_model_int8",
-        "url": "https://huggingface.co/meituan-longcat/LongCat-Video-Avatar-1.5/resolve/main/base_model_int8/quantized_model.safetensors.index.json",
-    },
-    {
-        "directory": "longcat/LongCat-Video-Avatar-1.5/base_model_int8",
-        "url": "https://huggingface.co/meituan-longcat/LongCat-Video-Avatar-1.5/resolve/main/base_model_int8/quantized_model-00001-of-00004.safetensors",
-    },
-    {
-        "directory": "longcat/LongCat-Video-Avatar-1.5/base_model_int8",
-        "url": "https://huggingface.co/meituan-longcat/LongCat-Video-Avatar-1.5/resolve/main/base_model_int8/quantized_model-00002-of-00004.safetensors",
-    },
-    {
-        "directory": "longcat/LongCat-Video-Avatar-1.5/base_model_int8",
-        "url": "https://huggingface.co/meituan-longcat/LongCat-Video-Avatar-1.5/resolve/main/base_model_int8/quantized_model-00003-of-00004.safetensors",
-    },
-    {
-        "directory": "longcat/LongCat-Video-Avatar-1.5/base_model_int8",
-        "url": "https://huggingface.co/meituan-longcat/LongCat-Video-Avatar-1.5/resolve/main/base_model_int8/quantized_model-00004-of-00004.safetensors",
-    },
-    # Smaller ComfyUI Load CLIP fallback text encoder.
-    # In the graph, connect Load CLIP to LongCat Avatar Text Encode.
-    {
-        "directory": "clip",
-        "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
-    },
-    # ComfyUI dropdown files.
-    {
-        "directory": "loras",
-        "url": "https://huggingface.co/meituan-longcat/LongCat-Video-Avatar-1.5/resolve/main/lora/dmd_lora.safetensors",
-        "filename": "longcat-avatar-dmd_lora.safetensors",
-    },
+
+
+    # -----------------------------------------------------
+    # 2. Wan 2.1 VAE
+    #
+    # ComfyUI:
+    # models/vae/
+    # -----------------------------------------------------
+
     {
         "directory": "vae",
-        "url": "https://huggingface.co/meituan-longcat/LongCat-Video/resolve/main/vae/diffusion_pytorch_model.safetensors",
-        "filename": "LongCat-Video-Avatar-vae.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
     },
+
+
+    # -----------------------------------------------------
+    # 3. CLIP Vision H
+    #
+    # ComfyUI:
+    # models/clip_vision/
+    # -----------------------------------------------------
+
     {
-        "directory": "audio_encoders",
-        "url": "https://huggingface.co/meituan-longcat/LongCat-Video-Avatar-1.5/resolve/main/whisper-large-v3/model.safetensors",
-        "filename": "whisper-large-v3.safetensors",
+        "directory": "clip_vision",
+        "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors",
     },
+
+
+    # -----------------------------------------------------
+    # 4. UMT5-XXL FP16 text encoder
+    #
+    # ComfyUI:
+    # models/text_encoders/
+    # -----------------------------------------------------
+
     {
-        "directory": "longcat",
-        "url": "https://huggingface.co/seanghay/uvr_models/resolve/main/Kim_Vocal_2.onnx",
+        "directory": "text_encoders",
+        "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp16.safetensors",
+    },
+
+
+    # -----------------------------------------------------
+    # 5. Wav2Vec2 FP16
+    #
+    # ComfyUI:
+    # models/wav2vec2/
+    # -----------------------------------------------------
+
+    {
+        "directory": "wav2vec2",
+        "url": "https://huggingface.co/Kijai/wav2vec2_safetensors/resolve/main/wav2vec2-chinese-base_fp16.safetensors",
+    },
+
+
+    # -----------------------------------------------------
+    # 6. OPTIONAL: MelBandRoFormer vocal separator
+    #
+    # Used by:
+    # ComfyUI-MelBandRoFormer
+    #
+    # Workflow loader:
+    # MelBandRoFormerModelLoader
+    #
+    # ComfyUI:
+    # models/diffusion_models/
+    # -----------------------------------------------------
+
+    {
+        "directory": "diffusion_models",
+        "url": "https://huggingface.co/Kijai/MelBandRoFormer_comfy/resolve/main/MelBandRoformer_fp16.safetensors",
     },
 ]
 
 
+# ---------------------------------------------------------
+# Parallel download settings
+#
+# HF/Xet already parallelizes large file transfers internally.
+# Keep this moderate to avoid excessive EBS/network contention.
+# ---------------------------------------------------------
+
 MAX_PARALLEL_FILES = 3
 
 
+# ---------------------------------------------------------
+# Main
+# ---------------------------------------------------------
+
 def main() -> None:
+
     start_time = time.time()
 
-    with ThreadPoolExecutor(max_workers=MAX_PARALLEL_FILES) as executor:
+    print(f"ComfyUI models: {COMFYUI_MODELS}")
+    print(f"HF cache:       {HF_HOME}")
+    print()
+
+    with ThreadPoolExecutor(
+        max_workers=MAX_PARALLEL_FILES
+    ) as executor:
+
         futures = [
             executor.submit(
                 download_file,
@@ -197,13 +329,15 @@ def main() -> None:
             print(f"Downloaded model to: {downloaded_model_path}")
 
     end_time = time.time()
+
+    print()
     print(f"Total Time Elapsed: {end_time - start_time:.2f}s")
 
 
 # %%
 # RUN MAIN
+
 main()
 
 # %%
-
 ```
