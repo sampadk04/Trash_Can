@@ -3,234 +3,98 @@ A professional presenter faces the camera and speaks calmly in a measured, conve
 
 Expected Conversation Flow by Jarvis Bot ->
 """
-I analysed the full **2:31 video**. It is a voice-banking assistant demo in which a customer named **Ravi** talks to **Jarvis**, an AI banking assistant. The conversation starts as a balance inquiry and progressively becomes a transactional workflow: **loan inquiry → foreclosure analysis → impact check → execution preview → explicit confirmation → transaction completion → contextual cross-sell**.
+## Video Analysis
 
-The transcript below is reconstructed from the spoken interaction and the live on-screen transcript. The video is only 832×464 and some text is heavily compressed, but the dialogue and financial figures below are legible with high confidence.
+The video shows a banking AI assistant, **Jarvis**, helping a customer named **Ravi** check his personal loan and foreclose it.
 
-## Full conversation script
+The interaction follows this flow:
 
-### 1. Greeting
-
-**Jarvis:**
-
-> Hi Ravi 👋 How can I help today?
-
-**Ravi:**
-
-> What is the outstanding amount on my loan?
-
-**Jarvis:**
-
-> Your Personal Loan (A/C ...8841) has an outstanding of ₹6,42,003. Your next EMI of ₹21,788 is due on 5 Jul, and about 30 EMIs remain at 11.6% p.a. Anything you'd like to do with it?
+**Loan balance enquiry → Foreclosure analysis → SIP and balance impact check → Confirmation → Loan closure → Contextual cross-sell**
 
 ---
 
-### 2. Ravi asks to close the loan early
+## Transcript
 
 **Ravi:**
-
-> I would like to close my loan early.
-
-The interface classifies/displays this intent as:
-
-> **Close this loan early**
+What is the outstanding amount on my loan?
 
 **Jarvis:**
-
-> Happy to help you close it. A bit of good news first — since this is a floating-rate personal loan, there's ₹0 foreclosure charge. The amount to close today is ₹6,42,000, and doing it now saves you roughly ₹74,000 in interest you'd have paid over the remaining EMIs. Your matured FD ₹8,28,403 sitting in Savings ...4382 can cover this comfortably. Your NOC would reach you within 7 working days. Want to go ahead?
+Your Personal Loan ending in **8841** has an outstanding balance of **₹6,42,003**. Your next EMI of **₹21,788** is due on **5 July**, with about **30 EMIs remaining** at **11.6% p.a.**
 
 ---
 
-### 3. Ravi checks the knock-on effect on his finances
-
 **Ravi:**
-
-> Will this affect my SIP balance?
+I would like to close my loan early.
 
 **Jarvis:**
+There is **no foreclosure charge**. The amount required to close the loan today is approximately **₹6.42 lakh**, and doing so would save around **₹74,000 in future interest**.
 
-> Good thing to check. After paying ₹6,42,003, about ₹1,86,400 stays in your savings. This comfortably covers your ₹15,000 SIP on the 8th and keeps you above the ₹25,000 minimum balance — so no missed SIP and no non-maintenance charge. You're all clear to proceed.
+Your matured FD proceeds of approximately **₹8.28 lakh**, currently available in Savings account ending **4382**, can comfortably cover the payment. The NOC will be issued within **7 working days**.
 
-This is an important part of the demo: Jarvis is not merely executing the loan transaction. It is performing a **cross-product impact analysis** across the customer's:
-
-* personal loan,
-* savings account,
-* matured FD proceeds,
-* scheduled SIP,
-* minimum-balance requirement.
+Would you like to proceed?
 
 ---
 
-### 4. Ravi decides to proceed
-
 **Ravi:**
-
-> Let's proceed with my foreclosure then.
-
-The interface translates this into the action intent:
-
-> **Proceed to foreclose**
+Will this affect my SIP balance?
 
 **Jarvis:**
+After paying the foreclosure amount, approximately **₹1,86,400** will remain in your savings account.
 
-> Here's what I'll do, please confirm: Pay from Savings ...4382 — ₹6,42,000. Close Personal Loan ...8841 (5 Jul EMI ₹21,788 stops). NOC: To your registered email, within 7 working days.
+This is sufficient to cover your **₹15,000 SIP** scheduled for the 8th while also maintaining the required **₹25,000 minimum balance**.
 
-At this point, the UI presents explicit action choices, including approximately:
-
-**Confirm & pay ₹6,42,000**
-**Change source account**
-**Cancel**
-
-This is effectively a **pre-transaction confirmation checkpoint**.
+Your SIP will not be missed, and no minimum-balance charge will apply.
 
 ---
 
-### 5. Ravi confirms the transaction
-
 **Ravi:**
-
-> Perfect, I confirm.
-
-The interface displays the execution action as:
-
-> **Confirm & pay ₹6,42,000**
+Let's proceed with my foreclosure then.
 
 **Jarvis:**
+Please confirm the following transaction:
 
-> Done ✅ Your foreclosure request is placed (Ref: FC-2026-6841). The amount is debited, the loan will show as closed shortly, and your NOC will arrive within 7 working days. Your 5 Jul EMI is cancelled, and ₹1,86,400 remains in savings — enough for your SIP and minimum balance. One small thing for later, no rush: your card runs at 90–96% of its limit most months, so you're pre-approved for a higher limit card. Happy to show you whenever you like.
+* Pay approximately **₹6.42 lakh** from Savings account ending **4382**
+* Close Personal Loan ending **8841**
+* Cancel the upcoming **5 July EMI of ₹21,788**
+* Receive the NOC by registered email within **7 working days**
 
 ---
 
-# What is happening functionally
+**Ravi:**
+Perfect, I confirm.
 
-The video demonstrates much more than a simple chatbot conversation.
+**Jarvis:**
+Done. Your foreclosure request has been placed successfully.
 
-### Stage 1: Information retrieval
+The amount has been debited, the loan will shortly reflect as closed, the upcoming EMI has been cancelled, and the NOC will arrive within 7 working days.
 
-Ravi asks a general question:
+Approximately **₹1,86,400** remains in savings, which is sufficient for your SIP and minimum-balance requirements.
 
-> “What is the outstanding amount on my loan?”
+Jarvis then adds that Ravi's credit card regularly operates at **90–96% utilisation** and mentions that he is pre-approved for a higher-limit card.
 
-Jarvis resolves which loan he means and retrieves:
+---
 
-* account ending **8841**,
-* outstanding amount **₹6,42,003**,
-* EMI **₹21,788**,
-* next due date **5 July**,
-* approximately **30 EMIs remaining**,
-* interest rate **11.6% p.a.**
+## Compact Analysis
 
-The user does not have to manually navigate to a loan page or provide an account number.
+The video demonstrates a **conversational banking agent capable of both advisory reasoning and transaction execution**.
 
-### Stage 2: Financial simulation before action
+The important capabilities shown are:
 
-When Ravi says he wants to close the loan, Jarvis does not immediately execute anything. It calculates and explains:
+1. **Account-aware query handling**
+   Jarvis identifies the relevant loan and retrieves balance, EMI, interest rate, and repayment details.
 
-* foreclosure fee: **₹0**,
-* current closure amount: approximately **₹6.42 lakh**,
-* projected interest saving: approximately **₹74,000**,
-* a viable funding source: matured FD proceeds in savings,
-* NOC delivery SLA: **7 working days**.
+2. **Financial decision support**
+   Before foreclosure, it calculates the closure amount, confirms zero foreclosure charges, estimates future interest savings, and identifies a suitable funding source.
 
-This is essentially a **personalized financial decision-support step**.
+3. **Cross-product impact analysis**
+   When Ravi asks about his SIP, Jarvis checks the post-payment savings balance against both the upcoming SIP debit and minimum-balance requirement.
 
-### Stage 3: Constraint and dependency checking
+4. **Explicit transaction confirmation**
+   Before executing the foreclosure, Jarvis summarizes the source account, payment amount, loan being closed, EMI cancellation, and NOC timeline.
 
-Ravi raises a concern about the SIP.
+5. **Transaction completion and next-best action**
+   After completing the primary task, Jarvis confirms the new account state and then makes a contextual credit-card upgrade suggestion based on high card utilisation.
 
-Jarvis performs what appears to be a forward-looking liquidity check:
-
-[
-₹8,28,403 - ₹6,42,003 \approx ₹1,86,400
-]
-
-It then checks that the remaining liquidity can accommodate:
-
-[
-₹15,000\text{ SIP}
-]
-
-while retaining at least:
-
-[
-₹25,000\text{ minimum balance}
-]
-
-The assistant therefore assures Ravi that neither the SIP nor the account's minimum-balance requirement will be disrupted.
-
-### Stage 4: Action plan before commitment
-
-Before taking an irreversible financial action, Jarvis explicitly summarizes:
-
-**Source:** Savings account ...4382
-**Amount:** ₹6,42,000
-**Destination/action:** Foreclose Personal Loan ...8841
-**Immediate consequence:** 5 Jul EMI stops
-**Post-action document:** NOC by registered email within 7 working days
-
-Only then does it request confirmation.
-
-### Stage 5: Transaction execution and post-transaction state
-
-After Ravi says:
-
-> “Perfect, I confirm.”
-
-Jarvis executes or simulates the execution of the workflow and returns:
-
-* transaction/reference ID,
-* debit confirmation,
-* upcoming EMI cancellation,
-* loan closure status,
-* NOC timeline,
-* remaining savings balance.
-
-This closes the original user journey completely.
-
-### Stage 6: Contextual cross-sell
-
-Only after the foreclosure workflow is complete, Jarvis introduces another observation:
-
-> the customer's card is regularly running at approximately 90–96% utilization.
-
-It then mentions eligibility for a higher-limit card.
-
-The design intent appears to be **post-service contextual cross-selling**: the assistant first completes the user's requested job, then makes a low-pressure, data-driven offer rather than interrupting the main task.
-
-## Overall conversational structure
-
-The flow can be represented as:
-
-```text
-Loan enquiry
-    ↓
-Retrieve loan details
-    ↓
-User expresses foreclosure intent
-    ↓
-Calculate foreclosure cost + savings
-    ↓
-Identify appropriate funding source
-    ↓
-User raises SIP/liquidity concern
-    ↓
-Run post-payment liquidity simulation
-    ↓
-User decides to proceed
-    ↓
-Present explicit transaction summary
-    ↓
-Obtain confirmation
-    ↓
-Execute foreclosure
-    ↓
-Report final financial state
-    ↓
-Contextual credit-card upsell
-```
-
-The strongest aspect of the demo is that Jarvis maintains **cross-domain financial context** throughout the conversation. It reasons across lending, deposits, savings liquidity, investments, balance requirements, document fulfilment, and credit-card utilisation without forcing the user to move between separate product flows.
+Overall, the video presents Jarvis as a **cross-product banking assistant** that can understand intent, retrieve financial information, simulate consequences, execute transactions, and provide personalized recommendations within one continuous conversation.
 
 """
-
-
