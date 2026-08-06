@@ -1,9 +1,3 @@
-Prompt ->
-A professional presenter faces the camera and speaks calmly in a measured, conversational manner. Neutral relaxed facial expression. Subtle natural lip articulation with restrained jaw movement. Minimal facial expressions, occasional natural blinking, and very small natural head movements. The head remains mostly stable and centered. Static locked camera, medium close-up, soft even studio lighting.
-
-
----
-
 Here is my brief one page handoff executive summary of the Optimus V2 Chatbot (like the philosophy and the objective and the architecture on a very high level, i.e. the important bits like the parallel blocks, the precedence, the hybrid retrieval of intents etc.)
 """
 # Optimus V2 Chatbot — Executive Handoff Summary
