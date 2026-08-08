@@ -1,3 +1,3 @@
 # SAMPLE TEXT
 
-"BAAI/bge-m3"
+"Qwen/Qwen3-Embedding-0.6B"
