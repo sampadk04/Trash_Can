@@ -1,3 +1,3 @@
 # SAMPLE TEXT
 
-"Qwen/Qwen3-Embedding-0.6B"
+"BalyasnyAI/multilingual-e5-base"
