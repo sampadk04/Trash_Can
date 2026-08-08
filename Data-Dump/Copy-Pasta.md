@@ -1,2 +1,3 @@
 # SAMPLE TEXT
 
+"BAAI/bge-m3"
