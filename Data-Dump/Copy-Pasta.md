@@ -1,3 +1,1 @@
 # SAMPLE TEXT
-
-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
