@@ -1,13 +1,11 @@
-# SAMPLE TEXT
+# SAMPLE 
 
-• Hugging Face repo IDs used across the benchmark experiments:
+So I was thinking of implementing an idea. Uh, it's ,okay not implementing an idea, it's Just a. Testing suite that I want to build quickly. To test out many models together at the same time. So essentially, I have a repository of queries already prepared And I have the target intent corresponding to those ready. And uh The evaluation principles I have sort of already been mentioned clearly, but I'll just repeat that for the sake of completion. So the evaluation principle uh basically hinges on whether the target intent has been locked properly or if The target intent is at least present in the Uh rendered pills Right- and uh Ideally uh we also want to do. Like multiple runs corresponding to a single query. Because there is There could be like some inherent deter uh uh uh non-determinism because of the way we have tuned the temperature and other settings, so it's usually you know, safe to take a sample of three queries or like whatever queries whatever number of samples I have mentioned in the run configurations. But once I fix those, the idea is uh we will essentially be uh We will es-we will essentially be Running the System prompt and the user prompt corresponding to that particular query and the idea is uh since I cannot carry the code everywhere. What I'm going to carry instead is the payload that we are supposed to be sending to each of these LLMs. So ideally uh the payload uh structure that is going to be sent to these are fairly similar. Eh-they usually consist of uh a sequence of uh, you know, system prompt, user prompt-prompt bot response, et cetera, et cetera. In our scenario we just have a a system prompt and a user prompt and the remaining like response is sort of expected out of the LLM in a structured output format So th-those are things that we can uh control. Now the, the idea is um since we don't really care about any other part of the of the chat bot. We only care about the LLM performance that too Uh especially in the MID block, and if it is like able to adhere to our instructions and if it is like able to you know, lock into the correct intents properly. So like given uh the input payload corresponding to every query re- uh remains the same across all LLM runs. We can sort sort of say that it will be like a fair extremely fair evaluation of you know how the behavior is. And of course like we will be uh you know, tag tagging the disposition of their performances and then comparing them across Um, and we will also be sort of taking a note of their latencies, we will also be noting their input and output tokens and so on so forth, right? So these things are something that we will be tracking across um, you know, all the uh popular uh like a-all the models that I'm trying to experiment. So that is essentially going to be the objective of this minimal testing suite that I'm building
 
-  BAAI/bge-large-en-v1.5
-  BAAI/bge-m3
-  Qwen/Qwen3-Embedding-0.6B
-  BalyasnyAI/multilingual-e5-base
-  Snowflake/snowflake-arctic-embed-l-v2.0
-  lightonai/mLateOn
-  lightonai/DenseOn
-  google/embeddinggemma-300m
-  Octen/Octen-Embedding-0.6B
+
+Okay, so let me give a TL;DR version of that idea because a lot of things might feel a bit confusing or overwhelming. So the idea is, because I can't carryall the components, my code of my code across various instances, notebooks, etcetera, etcetera, and setup is fairly hard. But at the same time, I still want to, you know, Look at the performance of various models at MID level. So what I'm trying to do is essentially, I'm trying to capture the uh system prompt and user prompt that is going to be going into the LLM uh for each and every query and then I can like maybe mine them and store them uh in a JSON uh right? using some sort of deterministic code right? So once I have this you know collection of JSONs or like collection of JSON storing the payload that I'm supposed to send to the LLM for each and every query, I can just simulate uh simulate these uh MID uh input by just sending this JSON payload
+
+
+directly to these LLMs individually and then I can just disposition on their uh output, right? So that is the idea. And of course, we are going to be expecting output in a structured output format. So all these uh um, you know additional uh
+
+pydantic base model data also we need to sort of capture uh in our testing suite code Yeah so
